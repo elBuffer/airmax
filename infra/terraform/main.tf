@@ -65,6 +65,31 @@ resource "aws_sqs_queue" "ingestion" {
   visibility_timeout_seconds = 180
 }
 
+resource "aws_sqs_queue" "production_dead_letter" {
+  count                     = local.stage == "prd" ? 1 : 0
+  name                      = "${local.prefix}-ingestion-dlq"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+}
+
+resource "aws_sqs_queue_redrive_allow_policy" "production_ingestion" {
+  count     = local.stage == "prd" ? 1 : 0
+  queue_url = aws_sqs_queue.production_dead_letter[0].id
+  redrive_allow_policy = jsonencode({
+    redrivePermission = "byQueue"
+    sourceQueueArns   = [data.aws_sqs_queue.production_ingestion[0].arn]
+  })
+}
+
+resource "aws_sqs_queue_redrive_policy" "production_ingestion" {
+  count     = local.stage == "prd" ? 1 : 0
+  queue_url = data.aws_sqs_queue.production_ingestion[0].url
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.production_dead_letter[0].arn
+    maxReceiveCount     = 5
+  })
+}
+
 locals {
   ingestion_queue_arn = local.stage == "prd" ? data.aws_sqs_queue.production_ingestion[0].arn : aws_sqs_queue.ingestion[0].arn
 }

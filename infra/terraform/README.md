@@ -2,8 +2,8 @@
 
 Terraform provisions two private S3 buckets, three ZIP-based Python Lambdas, the five-minute
 production EventBridge Rule, and the unauthenticated website Function URL. `dev` and `qa` receive
-a disposable queue. `prd` reads the existing `openaq-andre` queue without modifying or owning it.
-Every named resource starts with `andre-airmax-<stage>` by default.
+a disposable queue. `prd` reads the existing `openaq-andre` queue and adds a Terraform-owned DLQ
+without owning the source queue. Every named resource starts with `andre-airmax-<stage>` by default.
 
 ## Prerequisites
 
@@ -56,7 +56,15 @@ buckets retain deletion protection and must be emptied deliberately; production 
 ## Production activation
 
 The first `prd` deployment creates the queue consumer and the five-minute schedule **disabled**, so it
-cannot consume the `openaq-andre` backlog. Smoke-test by invoking the Lambdas directly.
+cannot consume the `openaq-andre` backlog. Smoke-test by invoking the Lambdas directly. Terraform
+attaches a 14-day DLQ after five failed deliveries.
+
+Before activation, raise the externally owned source queue's visibility timeout to 150 seconds:
+
+```powershell
+$queueUrl = .\with-env.ps1 aws sqs get-queue-url '--region=eu-west-1' '--queue-name=openaq-andre' '--query=QueueUrl' '--output=text'
+.\with-env.ps1 aws sqs set-queue-attributes '--region=eu-west-1' "--queue-url=$queueUrl" '--attributes=VisibilityTimeout=150'
+```
 
 Activation is a reviewed code change, not a command-line flag, so a later plan can never silently
 switch production off again. In `main.tf`, set `ingestion_enabled = true`, commit, then plan and
