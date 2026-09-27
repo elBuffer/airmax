@@ -1,7 +1,7 @@
 # Run a command with settings from this repository's ignored .env file.
 # Examples:
 #   .\with-env.ps1 aws sts get-caller-identity
-#   .\with-env.ps1 terraform -chdir=infra/terraform plan
+#   .\with-env.ps1 terraform '-chdir=infra/terraform' plan '-out=dev.tfplan'
 
 if ($args.Count -eq 0) {
     throw 'Usage: .\with-env.ps1 <command> [arguments]'

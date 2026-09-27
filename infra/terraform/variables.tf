@@ -1,12 +1,3 @@
-variable "stage" {
-  type    = string
-  default = "dev"
-  validation {
-    condition     = contains(["dev", "qa", "prd"], var.stage)
-    error_message = "stage must be dev, qa, or prd"
-  }
-}
-
 variable "owner_name" {
   type    = string
   default = "andre"
@@ -30,16 +21,4 @@ variable "production_queue_name" {
   type        = string
   description = "Existing production source queue; Terraform reads but never owns it"
   default     = "openaq-andre"
-}
-
-variable "enable_ingestion" {
-  type        = bool
-  description = "Enable the production queue consumer only after deployment smoke tests"
-  default     = false
-}
-
-variable "enable_schedule" {
-  type        = bool
-  description = "Enable scheduled production transformations only after ingestion is ready"
-  default     = false
 }

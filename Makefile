@@ -40,6 +40,11 @@ docker-replay:
 package:
 	$(PY) tools/package_lambdas.py
 
+TF := powershell.exe -NoProfile -ExecutionPolicy Bypass -File with-env.ps1 terraform -chdir=infra/terraform
+
+# Saves a reviewed plan only; apply it yourself with: terraform apply $(STAGE).tfplan
 deploy: package
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File with-env.ps1 terraform -chdir=infra/terraform init
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=$(STAGE)"
+	$(if $(filter dev qa prd,$(STAGE)),,$(error STAGE must be dev, qa or prd))
+	$(TF) init
+	$(TF) workspace select -or-create=true $(STAGE)
+	$(TF) plan -out=$(STAGE).tfplan

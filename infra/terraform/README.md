@@ -8,56 +8,62 @@ Every named resource starts with `andre-airmax-<stage>` by default.
 ## Prerequisites
 
 - Python 3.11+ and `uv`;
-- Terraform;
+- Terraform 1.4+;
 - `.env` copied from `.env.example` and filled with your AWS credentials and account ID;
 - the existing `lambda-execution-role` (Terraform reuses it and does not modify it).
 
-Run from the repository root:
+## Stages are workspaces
+
+Each stage has its own Terraform workspace and therefore its own state file, so a `dev` command can
+never plan changes to `prd`. The workspace name is the stage; there is no `stage` variable. Terraform
+refuses to plan in the `default` workspace. Check where you are before every plan or destroy:
+
+```powershell
+.\with-env.ps1 terraform '-chdir=infra/terraform' workspace show
+```
+
+State is local and ignored by Git (`infra/terraform/terraform.tfstate.d/<stage>/`). Back up the
+`prd` state; losing it orphans the production resources.
+
+## Deploy
+
+Run from the repository root. `make deploy STAGE=dev` performs the first four steps.
 
 ```powershell
 uv run python tools/package_lambdas.py
-.\with-env.ps1 aws sts get-caller-identity
-.\with-env.ps1 terraform -chdir=infra/terraform init
-.\with-env.ps1 terraform -chdir=infra/terraform validate
-.\with-env.ps1 terraform -chdir=infra/terraform plan -var="stage=dev"
+.\with-env.ps1 terraform '-chdir=infra/terraform' init
+.\with-env.ps1 terraform '-chdir=infra/terraform' workspace select '-or-create=true' dev
+.\with-env.ps1 terraform '-chdir=infra/terraform' plan '-out=dev.tfplan'
 ```
 
-The provider refuses to operate outside `AWS_ACCOUNT_ID`. Review the plan before running:
+The provider refuses to operate outside `AWS_ACCOUNT_ID`. Review the plan, then apply exactly it:
 
 ```powershell
-.\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=dev"
+.\with-env.ps1 terraform '-chdir=infra/terraform' apply 'dev.tfplan'
 ```
 
-For the first production deployment, leave ingestion and scheduling disabled:
+Delete the temporary environment from the `dev` workspace with:
 
 ```powershell
-.\with-env.ps1 terraform -chdir=infra/terraform plan -var="stage=prd"
-```
-
-This creates a disabled event-source mapping to `openaq-andre`; it cannot consume the existing
-backlog. After Lambda smoke tests, enable ingestion explicitly:
-
-```powershell
-.\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=prd" -var="enable_ingestion=true"
-```
-
-Enable the five-minute transformation schedule only when ingestion is ready:
-
-```powershell
-.\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=prd" -var="enable_ingestion=true" -var="enable_schedule=true"
-```
-
-Always pass the same enabled values on later plans and applies. Terraform never deletes the provided
-production queue; `dev` and `qa` use replay so they cannot steal production messages.
-
-Delete the temporary environment with:
-
-```powershell
-.\with-env.ps1 terraform -chdir=infra/terraform destroy -var="stage=dev"
+.\with-env.ps1 terraform '-chdir=infra/terraform' workspace select dev
+.\with-env.ps1 terraform '-chdir=infra/terraform' destroy
 ```
 
 Terraform empties `dev` and `qa` buckets and deletes their one-day Lambda log groups. Production
-buckets retain deletion protection and must be emptied deliberately.
+buckets retain deletion protection and must be emptied deliberately; production logs are kept for
+14 days.
+
+## Production activation
+
+The first `prd` deployment creates the queue consumer and the five-minute schedule **disabled**, so it
+cannot consume the `openaq-andre` backlog. Smoke-test by invoking the Lambdas directly.
+
+Activation is a reviewed code change, not a command-line flag, so a later plan can never silently
+switch production off again. In `main.tf`, set `ingestion_enabled = true`, commit, then plan and
+apply in the `prd` workspace. Set `schedule_enabled = true` the same way once ingestion is healthy.
+
+Enabling ingestion deletes messages from the provided queue as they are processed. Terraform never
+deletes the queue itself; `dev` and `qa` use replay so they cannot steal production messages.
 
 ## Account constraints
 
@@ -66,6 +72,9 @@ existing role's attached policy. Docker still checks the Lambda-like Linux envir
 the AWS-managed ZIP runtime is not byte-for-byte identical; see
 [`docs/architecture.md`](../../docs/architecture.md#lambda-packaging-constraint). Smoke-test every
 deployment in AWS.
+
+The prd ingestion timeout is 5 seconds, a sixth of the queue's 30-second visibility timeout as AWS
+recommends. Check the measured duration in the prd smoke test.
 
 The configuration uses EventBridge Rules, not EventBridge Scheduler. It creates no IAM role, does
 not set reserved concurrency, and uses no Athena, Glue, Redshift, Aurora, or DynamoDB resources.

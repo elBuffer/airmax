@@ -14,21 +14,34 @@ provider "aws" {
 }
 
 locals {
-  prefix = "${var.owner_name}-airmax-${var.stage}"
+  # One workspace per stage keeps each stage in its own state file.
+  stage  = terraform.workspace
+  prefix = "${var.owner_name}-airmax-${local.stage}"
+
+  # Production switches change only through a reviewed commit, never a command-line flag.
+  ingestion_enabled = false
+  schedule_enabled  = false
 }
 
 data "aws_iam_role" "lambda" {
   name = "lambda-execution-role"
+
+  lifecycle {
+    precondition {
+      condition     = contains(["dev", "qa", "prd"], local.stage)
+      error_message = "Select a stage workspace first: terraform workspace select -or-create=true dev|qa|prd"
+    }
+  }
 }
 
 resource "aws_s3_bucket" "raw" {
   bucket        = "${local.prefix}-raw"
-  force_destroy = var.stage != "prd"
+  force_destroy = local.stage != "prd"
 }
 
 resource "aws_s3_bucket" "results" {
   bucket        = "${local.prefix}-results"
-  force_destroy = var.stage != "prd"
+  force_destroy = local.stage != "prd"
 }
 
 resource "aws_s3_bucket_public_access_block" "buckets" {
@@ -42,24 +55,24 @@ resource "aws_s3_bucket_public_access_block" "buckets" {
 }
 
 data "aws_sqs_queue" "production_ingestion" {
-  count = var.stage == "prd" ? 1 : 0
+  count = local.stage == "prd" ? 1 : 0
   name  = var.production_queue_name
 }
 
 resource "aws_sqs_queue" "ingestion" {
-  count                      = var.stage == "prd" ? 0 : 1
+  count                      = local.stage == "prd" ? 0 : 1
   name                       = "${local.prefix}-ingestion"
   visibility_timeout_seconds = 180
 }
 
 locals {
-  ingestion_queue_arn = var.stage == "prd" ? data.aws_sqs_queue.production_ingestion[0].arn : aws_sqs_queue.ingestion[0].arn
+  ingestion_queue_arn = local.stage == "prd" ? data.aws_sqs_queue.production_ingestion[0].arn : aws_sqs_queue.ingestion[0].arn
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {
   for_each          = toset(["ingestion", "transformation", "website"])
   name              = "/aws/lambda/${local.prefix}-${each.key}"
-  retention_in_days = 1
+  retention_in_days = local.stage == "prd" ? 14 : 1
 }
 
 resource "aws_lambda_function" "ingestion" {
@@ -69,7 +82,7 @@ resource "aws_lambda_function" "ingestion" {
   handler          = "airmax_ingestion.handler.lambda_handler"
   filename         = "${path.module}/ingestion.zip"
   source_code_hash = filebase64sha256("${path.module}/ingestion.zip")
-  timeout          = var.stage == "prd" ? 5 : 120
+  timeout          = local.stage == "prd" ? 5 : 120
   depends_on       = [aws_cloudwatch_log_group.lambda["ingestion"]]
 
   environment {
@@ -81,11 +94,11 @@ resource "aws_lambda_function" "ingestion" {
 }
 
 resource "aws_lambda_event_source_mapping" "ingestion" {
-  count            = var.stage == "prd" ? 1 : 0
+  count            = local.stage == "prd" ? 1 : 0
   event_source_arn = local.ingestion_queue_arn
   function_name    = aws_lambda_function.ingestion.arn
   batch_size       = 10
-  enabled          = var.enable_ingestion
+  enabled          = local.ingestion_enabled
 }
 
 resource "aws_lambda_function" "transformation" {
@@ -110,20 +123,20 @@ resource "aws_lambda_function" "transformation" {
 }
 
 resource "aws_cloudwatch_event_rule" "transformation" {
-  count               = var.stage == "prd" ? 1 : 0
+  count               = local.stage == "prd" ? 1 : 0
   name                = "${local.prefix}-transformation"
   schedule_expression = "rate(5 minutes)"
-  state               = var.enable_schedule ? "ENABLED" : "DISABLED"
+  state               = local.schedule_enabled ? "ENABLED" : "DISABLED"
 }
 
 resource "aws_cloudwatch_event_target" "transformation" {
-  count = var.stage == "prd" ? 1 : 0
+  count = local.stage == "prd" ? 1 : 0
   rule  = aws_cloudwatch_event_rule.transformation[0].name
   arn   = aws_lambda_function.transformation.arn
 }
 
 resource "aws_lambda_permission" "eventbridge" {
-  count         = var.stage == "prd" ? 1 : 0
+  count         = local.stage == "prd" ? 1 : 0
   statement_id  = "AllowEventBridge"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.transformation.function_name

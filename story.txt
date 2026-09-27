@@ -420,7 +420,7 @@ make install          # dependencies
 make replay           # run the real handlers over tests/fixtures/ into .local/
 make serve            # serve .local/results/latest.json + the map on localhost
 make test             # the regression test in §8
-make deploy STAGE=dev # terraform apply, when the account works again
+make deploy STAGE=dev # package and save a terraform plan for review
 ```
 
 - `tools/replay.py` feeds recorded SQS events to `airmax_ingestion.handler` with the local writer,
@@ -431,7 +431,7 @@ make deploy STAGE=dev # terraform apply, when the account works again
 - Fixtures: at least one full recorded burst, plus small hand-made invalid records, a duplicate, a
   location that maps to no municipality, and an empty window.
 
-**Stages.** `dev`, `qa` and `prd` are the same Terraform with different variables. Only `prd` reads
+**Stages.** `dev`, `qa` and `prd` are the same Terraform in separate workspaces, one state per stage. Only `prd` reads
 the real queue — an SQS message goes to exactly one consumer, so a second reader on the production
 queue would silently steal data. `dev` and `qa` are fed by replay.
 
