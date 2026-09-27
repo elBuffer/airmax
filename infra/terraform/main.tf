@@ -124,6 +124,10 @@ resource "aws_lambda_event_source_mapping" "ingestion" {
   function_name    = aws_lambda_function.ingestion.arn
   batch_size       = 10
   enabled          = local.ingestion_enabled
+
+  scaling_config {
+    maximum_concurrency = 2
+  }
 }
 
 resource "aws_lambda_function" "transformation" {

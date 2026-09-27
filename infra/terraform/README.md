@@ -68,7 +68,8 @@ $queueUrl = .\with-env.ps1 aws sqs get-queue-url '--region=eu-west-1' '--queue-n
 
 Activation is a reviewed code change, not a command-line flag, so a later plan can never silently
 switch production off again. In `main.tf`, set `ingestion_enabled = true`, commit, then plan and
-apply in the `prd` workspace. Set `schedule_enabled = true` the same way once ingestion is healthy.
+apply in the `prd` workspace. Ingestion is capped at two concurrent Lambda invocations while the
+backlog drains. Set `schedule_enabled = true` the same way once ingestion is healthy.
 
 Enabling ingestion deletes messages from the provided queue as they are processed. Terraform never
 deletes the queue itself; `dev` and `qa` use replay so they cannot steal production messages.
