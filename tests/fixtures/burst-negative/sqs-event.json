@@ -1,0 +1,8 @@
+{
+  "Records": [
+    {
+      "messageId": "negative-value",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"negative-value\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"locationId\\\":200,\\\"location\\\":\\\"negative fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":-1,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\"}\"}"
+    }
+  ]
+}

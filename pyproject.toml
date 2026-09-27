@@ -1,0 +1,39 @@
+# Development workspace only: each service under services/ is its own package with its own
+# dependencies and Dockerfile. `uv sync` installs all three so tests and tools can run them together.
+[project]
+name = "airmax"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["airmax-ingestion", "airmax-transformation", "airmax-website"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+airmax-ingestion = { workspace = true }
+airmax-transformation = { workspace = true }
+airmax-website = { workspace = true }
+
+[tool.uv.workspace]
+members = ["services/*"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+extend-select = ["ARG"]
+
+[tool.ruff.lint.per-file-ignores]
+"services/transformation/src/airmax_transformation/transformations/validation.py" = ["SIM102", "SIM103"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+ignore_missing_imports = true
+files = ["services/*/src", "tools"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "ruff>=0.16.9",
+]

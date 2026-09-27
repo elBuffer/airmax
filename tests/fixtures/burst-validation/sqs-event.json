@@ -1,0 +1,12 @@
+{
+  "Records": [
+    {
+      "messageId": "unsupported-pollutant",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"unsupported-pollutant\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"locationId\\\":201,\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"unknown\\\",\\\"value\\\":1,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"ignored\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\"}\"}"
+    },
+    {
+      "messageId": "boolean-value",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"boolean-value\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"locationId\\\":202,\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":true,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"ignored\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\"}\"}"
+    }
+  ]
+}

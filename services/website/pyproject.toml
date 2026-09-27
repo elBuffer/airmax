@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airmax-website"
+version = "0.1.0"
+description = "Serves the air-quality dashboard."
+requires-python = ">=3.11"
+dependencies = ["boto3==1.40.30"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["airmax_website*"]
+
+[tool.setuptools.package-data]
+airmax_website = ["reference/*.geojson", "app/static/*", "app/static/vendor/*"]

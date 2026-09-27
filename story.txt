@@ -1,0 +1,576 @@
+# AirMax air-quality platform — build brief
+
+This file is the single source of truth for what to build. Read it fully before writing code.
+
+---
+
+## 1. Context
+
+**Client:** AirMax, a Belgian air-filtration company.
+**Their goal:** sell filters to Belgian cities by showing each city a neutral, third-party view of
+its own air quality — data AirMax does not produce and cannot be accused of shaping.
+**Our job:** build a lean proof of concept that taps the OpenAQ stream and provides a real-time view
+of current air quality across Belgian cities, independent of AirMax's own measurements.
+
+**Source:** OpenAQ, via the AWS Open Data registry (`https://registry.opendata.aws/openaq/`).
+OpenAQ publishes measurements to a public SNS topic; we subscribe an SQS queue to it.
+
+**The primary deliverable is the working current-air-quality pipeline and city dashboard.** Data
+quality, coverage and feasibility findings support honest interpretation of that product; they are
+not a substitute for delivering it.
+
+**Definition of "current air quality"** (given by the client): the average of the measurements over
+the last 3 hours, per city, per pollutant. The client also wants **the number of measurements**,
+because an average over 2 readings and an average over 200 mean very different things. Alongside
+it, calculate a rolling 24-hour average at most once per UTC hour and compare compatible pollutants
+with the WHO 2021 Air Quality Guidelines. Describe this as an indicative comparison, never as a
+compliance or safety determination.
+
+---
+
+## 2. Hard constraints
+
+| Constraint | Consequence for the build |
+|---|---|
+| **No working AWS account right now** | Everything must build, run and be tested **locally** against recorded fixtures. AWS is a deployment target, not a development dependency. |
+| Must use the provided `lambda-execution-role` | Do not create new IAM roles. |
+| Athena and Glue are **not permitted** (not granted to the role or the user) | Do not use them. Transformations run as traceable streaming Python. |
+| EventBridge **Rules** allowed; EventBridge **Scheduler** denied | Schedule with `events:PutRule` + `events:PutTargets` + `lambda:AddPermission`. |
+| Redshift explicitly denied | Do not use. |
+| Account Lambda concurrency may be as low as 10, and AWS keeps 10 unreserved | **Do not depend on reserved concurrency.** Correctness must not require it (see §6.4). |
+| Resource names must contain the author's name | Prefix every deployed resource: `andre-airmax-<stage>-<thing>`. |
+| No credentials in the repo | No keys, no ARNs with account IDs committed. Use env vars and `.env.example`. |
+| Brief says: no tests, no exception handling, no monitoring | Interpreted as *do not gold-plate*. We still keep a **small** regression test (§8) because it protects the headline number, and we still write structured logs. No alarms, no dashboards, no retry frameworks. |
+
+---
+
+## 3. Architecture to build
+
+```
+OpenAQ SNS topic
+      │ publishes
+      ▼
+   SQS queue ──► Ingestion Lambda ──► S3  raw/YYYY/MM/DD/HH/batch-<id>.json
+   (our queue)   (routes unchanged      (SNS-publish-hour partitions, kept forever)
+                  records)
+                                                    │
+                        EventBridge rule, every 5 min
+                                                    ▼
+                                       Transformation Lambda (Python)
+                                       streams the rolling-window folders,
+                                       cleans, dedupes, windows,
+                                       maps to municipality, aggregates
+                                                    │
+                            ▼
+                 S3 results/latest.json
+                 (averages, counts, T, computed_at,
+                  input digest)
+                            │
+                            ▼
+                 Serving Lambda (Function URL, HTTPS)
+                 returns the JSON and the map page
+                            │
+                            ▼
+                      Map for AirMax
+```
+
+### Why it is shaped this way (keep these properties; do not "improve" them away)
+
+- **No database.** Results are precomputed files. Nothing has to stay awake. An always-on Aurora
+  Serverless v2 floor costs ~$45/month for work that takes seconds; this runs at roughly $1/month.
+- **Streaming Python inside the Lambda.** `pipeline.py` shows the complete calculation order.
+  Accepted records spool to `/tmp`; only deduplication keys, municipality geometry and aggregates
+  stay in memory.
+- **Recompute, never running counters.** The result must be a pure function of the data in the
+  window. That makes duplicates, SQS retries and overlapping runs harmless by construction. Do not
+  introduce incremental counters or any state that accumulates across runs.
+- **Schedule, not one run per file.** A burst writes ~350 files; it needs one calculation, not 350.
+- **Raw kept forever.** Ingestion groups original SQS records by SNS publish hour without cleaning
+  their contents. They remain the replay source when a rule changes.
+
+---
+
+## 4. Repository layout
+
+Mirror this structure. Each Lambda is an independent Python package using the conventional `src/`
+layout. Ports-and-adapters: **handlers contain no AWS SDK calls**; all I/O goes through adapters, so
+the same handler runs locally against the filesystem.
+
+```
+.
+├── AGENTS.md
+├── README.md
+├── compose.yaml                  # Lambda-Linux replay and regression checks
+├── Makefile
+├── pyproject.toml                # local uv workspace only
+├── services/
+│   ├── ingestion/
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml
+│   │   └── src/airmax_ingestion/
+│   │       ├── config.py
+│   │       ├── logging.py
+│   │       ├── handler.py        # SQS → untouched raw files
+│   │       └── adapters/
+│   │           ├── s3_writer.py
+│   │           └── local_writer.py
+│   ├── transformation/
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml
+│   │   └── src/airmax_transformation/
+│   │       ├── config.py         # includes configurable window hours
+│   │       ├── logging.py
+│   │       ├── handler.py        # input check, adapters and publication
+│   │       ├── pipeline.py       # shared preparation order
+│   │       ├── calculations/
+│   │       │   ├── current.py    # current aggregation policy
+│   │       │   ├── who.py        # WHO scheduling and result assembly
+│   │       │   └── who_aggregation.py # WHO-period aggregation math
+│   │       ├── transformations/
+│   │       │   ├── validation.py
+│   │       │   ├── deduplication.py
+│   │       │   ├── window.py
+│   │       │   └── municipalities.py
+│   │       ├── reference/municipalities.geojson
+│   │       └── adapters/
+│   │           ├── s3_store.py
+│   │           └── local_store.py
+│   └── website/
+│       ├── Dockerfile
+│       ├── pyproject.toml
+│       └── src/airmax_website/
+│           ├── config.py
+│           ├── handler.py        # thin Function URL/Lambda adapter
+│           ├── reference/municipalities.geojson
+│           ├── adapters/
+│           └── app/              # direct routing; FastAPI-like shape without FastAPI
+│               ├── main.py
+│               ├── presenter.py
+│               ├── models/       # typed public API response
+│               └── static/       # HTML, CSS, JS and bundled MapLibre assets
+├── docs/
+│   ├── architecture.md
+│   ├── data-findings.md
+│   ├── reference-data.md
+│   └── decisions/
+├── infra/terraform/
+├── tools/replay.py
+└── tests/
+    ├── fixtures/
+    ├── test_ingestion.py
+    ├── test_transformation.py
+    ├── test_website.py
+    └── test_reference_data.py
+```
+
+The three services import nothing from one another and each builds from its own directory. Shared
+municipality reference data is copied into transformation and website because each deployment must
+be self-contained; `tests/test_reference_data.py` prevents the copies from drifting.
+
+`pipeline.py` is the readable owner of transformation order: validate and spool → derive the
+window → deduplicate → map municipalities → aggregate. Individual rules live in named files under
+`transformations/`, not in the handler. The raw window is streamed through temporary files rather
+than loaded into memory. Shapely owns robust point-in-polygon matching; no database or dataframe
+runtime is involved.
+
+---
+
+## 5. Data contract and rules
+
+These are findings from analysis of 55,696 messages over 4 days. Treat them as **observed
+behaviour, not a guaranteed contract** — the code must not break if they change.
+
+### 5.1 Message shape
+
+```json
+{
+  "locationId": 5796,
+  "location": "Houdeng-Goegnies",
+  "city": "Houdeng-Goegnies",
+  "parameter": "no2",
+  "value": 82.3,
+  "unit": "µg/m³",
+  "date": { "utc": "2026-09-13 10:26:45.298729",
+            "local": "2026-09-13 10:26:45.298729+02:00" },
+  "coordinates": { "latitude": 50.48815, "longitude": 4.15428 },
+  "country": "BE",
+  "isMobile": false, "isAnalysis": false,
+  "entity": "ever", "sensorType": "reference grade"
+}
+```
+
+Each message is wrapped in an SNS notification carrying a `Timestamp` (UTC) — the send time.
+
+### 5.2 Field trust, and the ten acceptance rules
+
+| Field | Trust | Use |
+|---|---|---|
+| `locationId`, `coordinates`, `parameter`, `unit`, `value`, `country` | trusted | drive the calculation |
+| SNS `Timestamp` | trusted | publish time; partitioning, rolling window, observations and freshness |
+| `date.utc` | not a reliable reading time; observed 0–60 minutes ahead of SNS publish time | retain unchanged; validate syntax, use its byte value in the deduplication key, and detect backfill |
+| `date.local` | conflicts with `date.utc` by exactly two hours | ignore pending provider clarification |
+| `city`, `location` | **not a city** — `city == location` in 100% of messages | store, never group by |
+| `isMobile`, `isAnalysis`, `entity`, `sensorType` | fixed per location but otherwise random | store, do not use |
+
+A reading is **accepted** when all ten hold:
+
+1. all required fields are present;
+2. `locationId`, `parameter`, and `unit` are non-empty scalars; `value` and coordinates are JSON numbers, not booleans or numeric strings;
+3. the pollutant is supported (`co`, `no2`, `o3`, `pm10`, `pm25`, or `so2`);
+4. `value` is a finite number;
+5. `value` is non-negative;
+6. `date.utc` parses;
+7. `date.utc` is not more than five minutes older than the SNS publish time; older values are tagged `late_reading` and excluded as possible provider backfill;
+8. `country == "BE"`;
+9. the unit is the known unit for that pollutant (`co` → mg/m³, all others → µg/m³);
+10. coordinates are valid and inside Belgium (lat 49.4–51.6, lon 2.5–6.5).
+
+Otherwise it is excluded from the calculation. The unchanged raw record remains the replay
+evidence; no derived rejected copy or rejection count is retained.
+The PoC dashboard shows only accepted measurement results.
+
+### 5.3 Duplicates
+
+A reading is identified by `locationId + parameter + date.utc`. The same reading received
+twice counts once. Deduplicate inside the calculation, not at ingest.
+
+### 5.4 The windows
+
+- `T` = the newest SNS publish time seen in the data.
+- The current window is `T − 3 hours … T`, filtered precisely by SNS publish time.
+- The WHO comparison window is `T − 24 hours … T`. It is recomputed at most once per UTC hour
+  when its input changes; the current calculation reuses the last 24-hour result between updates.
+- **It ends at the newest data, not at the wall clock.** With a burst every 6 hours, a clock-based
+  window would be empty most of the time.
+- If bursts became more frequent, the same rule averages several bursts automatically. Do not
+  special-case the 6-hour rhythm anywhere in the code.
+
+### 5.5 The calculation
+
+Group accepted, deduplicated readings in the window by **municipality + pollutant + unit**:
+
+```
+site mean         = average of the readings at one physical site (identical coordinates)
+average           = sum(site means) / number of physical sites
+measurement_count = number of readings
+location_count    = number of distinct locationIds
+```
+
+Several locationIds at identical coordinates are co-located instruments of **one** station, so
+each physical station counts once, however many IDs the feed publishes for it
+(`docs/decisions/ADR-0004-colocated-instruments.md`).
+
+Rules: never mix pollutants, never mix units, no overall air-quality index. Municipalities are
+comparable only within the same pollutant. Locations that map to no municipality are excluded from
+the city results.
+
+WHO-period aggregates must not weight a minute-level publisher more heavily than an hourly one.
+First average readings per physical site per hour, then average sites into a municipality-hour,
+then average the represented hours equally. Report the raw measurement count, distinct physical
+sites, distinct observation times and represented one-hour slots.
+
+### 5.6 Municipality mapping
+
+"City" means the official Belgian **municipality**, derived from coordinates by point-in-polygon —
+never from the `city` field. Example: Wondelgem, Drongen, Mariakerke, Sint-Amandsberg and
+Sint-Kruis-Winkel all map to **Gent** (NIS 44021).
+
+Package the same simplified NGI/IGN AdminVector WGS84 GeoJSON in transformation and website, and
+verify the copies are byte-identical. Record the source and licence in `docs/reference-data.md`.
+
+---
+
+## 6. Component specifications
+
+### 6.1 Ingestion Lambda
+
+- Triggered by SQS (event source mapping, batch size 10).
+- Parses only enough of each record to route it by its SNS `Timestamp` into
+  `raw/YYYY/MM/DD/HH/batch-<uuid>.json`. Partition each message independently: if one SQS batch spans
+  a publish-hour boundary, write one grouped file per hour; records themselves remain unchanged.
+- Records without a parseable SNS publish time go to
+  `raw/invalid/YYYY/MM/DD/HH/batch-<uuid>.json`, partitioned by SQS arrival hour. Nothing is dropped.
+- Ingestion performs no quality validation, deduplication or filtering.
+- Concurrency: leave unreserved. One concurrent execution clears a 3,481-message burst in well
+  under a minute, and the map refreshes every 5 minutes.
+
+### 6.2 Calculation Lambda
+
+Steps, in order:
+
+1. **Input check.** Read `results/latest.json`. List dated `raw/` keys starting after the folder
+   for its stored `T − (window + 1 hour)` (the whole dated history once when there is no previous
+   result). Stop before `raw/invalid/`: records without a usable SNS timestamp are preserved for
+   inspection but cannot belong to a source-time calculation window. Never anchor the listing on
+   the wall clock; delayed records land in already-past publish-hour folders. Select the objects
+   for step 2 and hash their sorted keys; if the hash equals the stored `input_digest`, exit without
+   reading payloads. Do not compare by `LastModified`: it is second-granular and does not order
+   late uploads.
+2. Select the SNS-publish-hour folders covering each rolling window plus one boundary hour
+   (four partitions for the default three-hour window and 25 for the 24-hour window). Read only
+   the current-window selection except when the hourly 24-hour calculation is due.
+3. Stream records through the ten validation rules and spool accepted records to `/tmp`; invalid
+   records are discarded from the derived calculation and remain unchanged in raw storage.
+4. Compute `T`, select the configured rolling window by SNS publish time (§5.4), then deduplicate.
+   Records scanned from the boundary-hour folder but outside the exact window are discarded.
+5. Map coordinates to municipality with a Shapely spatial index (§5.6).
+6. Aggregate (§5.5).
+7. Validate the complete candidate result contract, then write `results/latest.json`. Refuse
+   publication when windows are invalid, counts are invalid, aggregate values are non-finite,
+   pollutant units disagree or city rows are duplicated. Preserve the current-window contract and
+   independently timestamped WHO results, input digests, completeness state and city aggregates.
+
+WHO 24-hour guideline values are PM2.5 15 µg/m³, PM10 45 µg/m³, NO₂ 25 µg/m³, SO₂ 40 µg/m³ and
+CO 4 mg/m³. Ozone uses a rolling 8-hour average and a 100 µg/m³ guideline. Following the validity
+criteria in EU Directive 2024/2881, a 24-hour comparison requires at least 18 represented hourly
+slots and an 8-hour comparison requires at least 6. Retained history must also span the complete
+period. Below those thresholds, show the estimate and WHO reference in grey with "not enough
+hourly coverage to compare"; never state above or below. Once valid, a single rolling average above
+a guideline value is still not a regulatory violation; use "above the WHO guideline value", call
+the comparison indicative, and link the WHO source. Never show a synthetic confidence percentage
+or describe a result as safe, compliant or verified.
+
+`pipeline.py` owns shared preparation through municipality mapping and calls named functions under
+`transformations/`. The current and WHO calculations own their distinct aggregation policies. The
+handler owns only the input check, adapter selection and publication. Raw readings are never accumulated in memory;
+only municipality geometries, deduplication keys and aggregate sets/counters are retained. The
+current window is fixed at three hours in the transformation application configuration for every
+stage; changing the client-defined period requires a code change and the same tested release through
+dev, QA and production.
+
+**Output shape:**
+
+```json
+{
+  "generated_at": "2026-09-18T10:15:03Z",
+  "window": { "end_t": "2026-09-17T04:13:00Z", "start": "2026-09-17T01:13:00Z", "hours": 3 },
+  "source": { "name": "OpenAQ", "url": "https://openaq.org" },
+  "input_digest": "<sha256 of the sorted selected raw keys>",
+  "cities": [
+    { "municipality": "Gent", "nis": "44021", "pollutant": "pm25", "unit": "µg/m³",
+      "average": 13.6474010878, "measurement_count": 6, "location_count": 6,
+      "distinct_sites": 5 }
+  ]
+}
+```
+
+`distinct_sites` counts unique coordinate pairs: 160 shared place names include location IDs at
+identical coordinates, so `location_count` overstates physical coverage. Both numbers are reported
+because the difference is itself a finding.
+
+### 6.3 Serving Lambda
+
+- Function URL, auth `NONE` (note this in the docs as a PoC choice).
+- `GET /` → the map page; `GET /api/current` → dashboard-ready JSON; `GET /data.json` → the raw
+  precomputed result; `/assets/municipalities.min.geojson` and bundled static assets are served by
+  the same Lambda.
+- Serving the page from the same Lambda avoids depending on S3 public access, which may be blocked
+  by account policy, and avoids a CORS configuration. If public access turns out to be available,
+  keep the Lambda anyway — one URL is simpler to demo.
+- No database call is on the request path. Reads are file reads.
+
+### 6.4 The map page
+
+Dependency-free static HTML, CSS and JavaScript with bundled MapLibre assets and no build step. It
+must show:
+
+- Belgian municipalities shaded by the selected pollutant's 3-hour average;
+- WHO guideline references as stable dashboard content, even when a place has no period estimate;
+  measurements change only the evidence and comparison state, never whether the reference exists;
+- each available WHO-period estimate, its measurement count, physical-site count, observation-time
+  count, represented hours and required hours; use 24 hours for PM2.5, PM10, NO₂, SO₂ and CO and
+  8 hours for ozone;
+- separate **Map** and **Municipalities** views: the map compares one selected pollutant across
+  Belgium, while a searchable municipality view shows all six pollutants together;
+- a municipality overview with a colour-coded card for each pollutant showing its current 3-hour
+  value, relative quartile among reporting municipalities, measurement and physical-site counts,
+  and one of: above WHO guideline value, at or below WHO guideline value, insufficient coverage,
+  no current reading, or no data; each pollutant remains selectable for its full evidence;
+- a **pollutant selector** — never a combined score or a generic good/bad label detached from the
+  guideline's averaging period;
+- measurement and physical-site (`distinct_sites`) counts per municipality, visible, not buried in a tooltip;
+- only accepted, deduplicated measurement results and their measurement/physical-site evidence;
+- municipalities with **no data** visually distinct from municipalities with a low value;
+- **"Latest data received: X ago"**, computed from the SNS send time;
+- a **staleness state**: if the newest data is older than the PoC's fixed eight-hour threshold, say
+  so plainly rather than showing a confident stale number;
+- the source named and linked — the neutrality of the source is the entire sales argument.
+
+### 6.5 Concurrency and overlapping runs
+
+Two calculation runs must never leave a stale result behind. Do **not** rely on reserved
+concurrency, which the account may not permit. Instead:
+
+- the result is a pure function of the data, so two runs over the same data agree;
+- publish `results/latest.json` with an S3 ETag compare-and-swap. Order competing results only by
+  source progress (`window.end_t`), never by Lambda wall-clock time. After a precondition conflict,
+  stop if stored `end_t` is equal or later; otherwise retry against the new ETag. A same-window late
+  file that loses this race is picked up from its changed input digest by the next scheduled run.
+
+State this reasoning in `docs/decisions/`.
+
+---
+
+## 7. Local-first workflow (the account is down; this is the primary path)
+
+The calculation is a pure function: raw files in, JSON out. It must run with no AWS whatsoever.
+
+```
+make install          # dependencies
+make replay           # run the real handlers over tests/fixtures/ into .local/
+make serve            # serve .local/results/latest.json + the map on localhost
+make test             # the regression test in §8
+make deploy STAGE=dev # terraform apply, when the account works again
+```
+
+- `tools/replay.py` feeds recorded SQS events to `airmax_ingestion.handler` with the local writer,
+  then invokes `airmax_transformation.handler` with the local store. **Same handler code as
+  production** —
+  only the adapter differs. If the handlers need changing to run locally, the adapter boundary is
+  in the wrong place.
+- Fixtures: at least one full recorded burst, plus small hand-made invalid records, a duplicate, a
+  location that maps to no municipality, and an empty window.
+
+**Stages.** `dev`, `qa` and `prd` are the same Terraform with different variables. Only `prd` reads
+the real queue — an SQS message goes to exactly one consumer, so a second reader on the production
+queue would silently steal data. `dev` and `qa` are fed by replay.
+
+---
+
+## 8. Acceptance criteria
+
+Tests are a guardrail for calculation behavior, not the aim of the project and not evidence that the
+source is commercially or scientifically adequate. Passing tests proves that the code reproduces
+known fixtures and rules. The aim is the working real-time city view defined by the client; measured
+findings explain how much trust users should place in it.
+
+The build is done when all of these hold:
+
+1. `make replay && make test` passes **with no AWS credentials present**.
+2. The regression test reproduces the worked example exactly: burst of **17 Sep 04:13 UTC**, Gent,
+   PM2.5 → **13.6474010878 µg/m³**, from **6 readings** at **6 location IDs** and **5 distinct
+   sites**.
+3. Invalid readings are excluded from results and the original records remain unchanged in `raw/`
+   for replay.
+4. A duplicated message does not change any average.
+5. Running the calculation twice over unchanged data produces a byte-identical result, and the
+   second run exits at the input check without reading raw files.
+6. With no raw data or no accepted data in the window, `results/latest.json` is well-formed and the
+   map says so — it does not crash and does not show a stale number as if it were current.
+7. `terraform validate` passes, and every resource name contains the owner name.
+8. No credentials, account IDs or ARNs are committed.
+9. `docs/architecture.md` states the rejected alternatives (Aurora, DynamoDB) with the numbers.
+10. `docs/data-findings.md` answers §9.
+
+---
+
+## 9. Supporting findings the pipeline must produce
+
+These findings support and constrain the dashboard; they are not the primary deliverable. Compute
+them from real data and write them into `docs/data-findings.md`, each with the number that backs it.
+
+### 9.1 Limitations that must accompany every demo and verdict
+
+Explain these plainly; a technically correct number without these limits is misleading.
+
+- **Independent source.** AirMax controls none of OpenAQ's sensors, publication schedule, coverage,
+  corrections or continued availability. Neutrality is the commercial benefit and dependency is
+  the operational risk.
+- **Publishing frequency is not a contract.** Six-hour bursts are an observation from one capture,
+  not an assumption in the design. The source may publish minutely, irregularly or stop. More
+  frequent publication can materially increase the 24-hour file count and Lambda runtime even
+  though WHO-period calculations are limited to once per hour.
+- **Publish time is only a proxy.** Windows, freshness and dashboard times always use trusted SNS
+  publish time. `date.utc` is not a reliable reading time: all 55,696 observed values were 0–60
+  minutes ahead of publish time, and `date.local` conflicts with it. `date.utc` is retained for
+  deduplication and traceability only, except that a value more than five minutes older than SNS
+  time is excluded as possible provider backfill. SNS time is still not proven to be the physical
+  measurement time or integration period. WHO comparisons remain indicative until OpenAQ clarifies
+  those semantics.
+- **Not regulatory monitoring.** OpenAQ aggregation does not establish calibration, reference-method
+  equivalence, measurement uncertainty or regulatory quality assurance. Metadata such as
+  `sensorType` is unreliable and cannot be used to certify a reading.
+- **WHO values are references, not legal limits.** A rolling result above or below one guideline
+  value does not establish safety, harm, compliance or non-compliance. WHO short-term guideline
+  values concern the relevant averaging period and repeated exposure; most use a 99th-percentile
+  interpretation of roughly three to four exceedance days per year.
+- **Coverage gates comparability, not certainty.** The EU-derived 75% rule (18/24 or 6/8 represented
+  hours) prevents an obviously incomplete comparison. Meeting it does not prove that stations are
+  representative of the municipality or its population. Never turn it into a confidence percent.
+- **Spatial coverage is uneven.** A municipality result describes only its reporting physical sites,
+  not every street or resident. Municipalities with different site counts are not equally
+  representative, and a municipality with no data must remain visibly different from a low value.
+- **Logical stations can duplicate physical sites.** `location_count` may overstate coverage, so WHO
+  evidence leads with `distinct_sites`; both counts remain available for transparency. Both the
+  3-hour and the WHO calculation average the IDs at one site before averaging sites.
+- **Values at one site differ widely.** Across the capture, IDs at the same site and delivery differ
+  by a median of 69% of their mean; the feed cannot show whether they were measured at the same time. Averaging them is the documented fallback when
+  no primary instrument is known; it does not make the value right (ADR-0004).
+- **Frequency-neutral aggregation is a modelling choice.** Site-hour, municipality-hour and then
+  equal-hour averaging prevents minute-level publishers dominating sparse publishers. It is
+  documented and reproducible, but it is not a substitute for provider-confirmed measurement
+  methodology.
+- **Data volume remains unproven.** A 24-hour window can contain thousands of small raw files.
+  Runtime, GET count, memory and cost must be measured on production-like volume. Immutable hourly
+  compaction is the upgrade when those measurements justify it.
+- **WHO results update hourly.** They may lag the newest source message by up to one hour. The
+  3-hour current result can still update every five minutes when input changes.
+- **No historical backfill.** Retention starts when ingestion starts. Until a complete period is
+  retained, show the estimate and guideline but no above/below claim; last winter cannot be
+  reconstructed from this stream.
+- **Fixture evidence is deliberately narrow.** The checked-in engineered messages prove the Gent
+  regression and validation behavior only. They do not prove Belgian coverage, source freshness,
+  production performance or WHO comparability. Those require the real capture.
+- **No combined health score.** Pollutants, units and averaging periods stay separate. The map's
+  relative municipality colours are rankings, not health categories and must not be interpreted as
+  WHO bands.
+
+### 9.2 Required findings
+
+1. **Coverage.** How many of Belgium's ~565 municipalities have at least one sensor? Which
+   pollutants are missing where? Do Brussels, Antwerpen, Gent, Charleroi and Liège each have enough
+   readings for a credible average?
+2. **Freshness.** Data arrives in bursts every ~6 hours, not continuously. What does "real-time"
+   honestly mean here, and is it enough for a sales conversation?
+3. **Time granularity.** `date.utc` is 0–60 minutes ahead of SNS publish time and differs from
+   `date.local` by exactly two hours in the observed capture, while each burst's values share one
+   generation instant. Always use SNS publish time for windows and freshness; use `date.utc` only
+   for deduplication, traceability and the five-minute backfill guard. Is a 1-hour average
+   defensible? A 15-minute one?
+4. **Physical vs logical coverage.** How much does `location_count` overstate `distinct_sites`?
+   Which number should a city official be shown?
+5. **Field quality.** `city` unusable, `date.local` wrong, four metadata fields unreliable. What
+   does each one cost us, and what did we do instead?
+6. **No history.** This is a stream. There is no backfill. What do we tell a city that asks about
+   last winter?
+7. **Dependence.** AirMax controls none of this feed — not the schedule, not the coverage, not the
+   field quality. That is simultaneously the risk and the point of using a neutral source.
+
+Then a verdict: **feasible**, **feasible with conditions**, or **not feasible** — with the
+conditions named.
+
+---
+
+## 10. Out of scope
+
+Document these in `docs/architecture.md` as "what production would need", and do not build them:
+
+- file compaction / hourly Parquet rollups (needed only if the data rate grows; at today's volume a
+  3-hour window is ~350 files and ~$6/month of S3 GETs);
+- alarms, dashboards, dead-letter queue, retry policies;
+- authentication on the Function URL;
+- per-station history, trends, or any query not precomputed into a result file;
+- any second copy of the cleaned data. Cleaning is deterministic and cheap; deriving it per run
+  avoids a second store that can drift from raw. Note honestly that a reading in the window is
+  re-cleaned ~36 times before it ages out, and that the compaction job above is the fix.
+
+---
+
+## 11. Notes for whoever builds this
+
+- **Measure, do not assume.** The per-invocation duration, the GeoJSON size and the window read time
+  are estimates until the code reports them. Log them and put the real numbers in the docs.
+- **Prefer deleting a component over adding one.** Every box on the diagram survived a "what breaks
+  if we remove it?" question. New boxes must survive the same one.
+- **The headline number is 13.6474010878.** If a refactor changes it, the refactor is wrong until
+  proven otherwise.

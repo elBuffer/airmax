@@ -1,0 +1,60 @@
+{
+  "Records": [
+    {
+      "messageId": "0",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-0\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":1}\"}"
+    },
+    {
+      "messageId": "1",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-1\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.06,\\\"longitude\\\":3.73},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":2}\"}"
+    },
+    {
+      "messageId": "2",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-2\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.07,\\\"longitude\\\":3.74},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":3}\"}"
+    },
+    {
+      "messageId": "3",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-3\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.08,\\\"longitude\\\":3.75},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":4}\"}"
+    },
+    {
+      "messageId": "4",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-4\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.09,\\\"longitude\\\":3.76},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":5}\"}"
+    },
+    {
+      "messageId": "5",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-5\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":6}\"}"
+    },
+    {
+      "messageId": "6",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-6\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":1}\"}"
+    },
+    {
+      "messageId": "7",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-7\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\"}\"}"
+    },
+    {
+      "messageId": "8",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-8\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":1e400,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":101}\"}"
+    },
+    {
+      "messageId": "9",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-9\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"invalid\\\",\\\"local\\\":\\\"ignored\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":102}\"}"
+    },
+    {
+      "messageId": "10",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-10\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"NL\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":103}\"}"
+    },
+    {
+      "messageId": "11",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-11\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"mg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.05,\\\"longitude\\\":3.72},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":104}\"}"
+    },
+    {
+      "messageId": "12",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-12\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":0,\\\"longitude\\\":0},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":105}\"}"
+    },
+    {
+      "messageId": "13",
+      "body": "{\"Type\":\"Notification\",\"MessageId\":\"fixture-13\",\"Timestamp\":\"2026-09-17T04:13:00Z\",\"Message\":\"{\\\"location\\\":\\\"fixture\\\",\\\"city\\\":\\\"not-trusted\\\",\\\"parameter\\\":\\\"pm25\\\",\\\"value\\\":13.6474010878,\\\"unit\\\":\\\"µg/m³\\\",\\\"date\\\":{\\\"utc\\\":\\\"2026-09-17 05:11:22\\\",\\\"local\\\":\\\"2026-09-17 05:11:22+02:00\\\"},\\\"coordinates\\\":{\\\"latitude\\\":51.5,\\\"longitude\\\":3.0},\\\"country\\\":\\\"BE\\\",\\\"isMobile\\\":false,\\\"isAnalysis\\\":false,\\\"entity\\\":\\\"fixture\\\",\\\"sensorType\\\":\\\"reference grade\\\",\\\"locationId\\\":106}\"}"
+    }
+  ]
+}

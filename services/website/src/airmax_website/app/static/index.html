@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Current air quality across Belgium and the measurements behind it.">
+  <title>AIRMAX · Belgium</title>
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('airmax-theme');
+      document.documentElement.dataset.theme = savedTheme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (error) { /* storage blocked: the light default applies */ }
+  </script>
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="AIRMAX home"><span class="brand-name">AIRMAX</span></a>
+    <span class="brand-tagline">Air quality across Belgium</span>
+
+    <nav class="view-switch" aria-label="Dashboard view">
+      <button type="button" data-view="map" aria-pressed="true">Map</button>
+      <button type="button" data-view="municipalities" aria-pressed="false">Municipalities</button>
+    </nav>
+
+    <div class="search" role="search">
+      <label class="visually-hidden" for="placeSearch">Find a municipality</label>
+      <svg class="search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>
+      <input id="placeSearch" type="search" placeholder="Find a municipality" autocomplete="off" spellcheck="false"
+        role="combobox" aria-expanded="false" aria-controls="placeResults" aria-autocomplete="list">
+      <ul id="placeResults" class="search-results" role="listbox" aria-label="Matching places" hidden></ul>
+    </div>
+
+    <p id="freshnessBadge" class="freshness" data-status="loading">Loading live data</p>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to night mode" aria-pressed="false">
+      <svg class="icon-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>
+    </button>
+  </header>
+
+  <nav id="pollutantBar" class="pollutant-bar" aria-label="Choose pollutant">
+    <div id="pollutantTabs" class="pollutant-switch"><p class="tabs-note">Loading pollutants…</p></div>
+  </nav>
+
+  <main class="workspace">
+    <section class="map-column">
+      <header class="map-heading">
+        <h1 id="mapTitle">Loading Belgian air quality…</h1>
+        <p id="mapSubtitle">Fetching the current measurement window.</p>
+      </header>
+
+      <div class="map-frame">
+        <div id="map" role="img" aria-label="Map of Belgian municipalities coloured by pollutant concentration"></div>
+        <button id="resetView" class="reset-view" type="button" hidden>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+          Show all of Belgium
+        </button>
+        <div class="legend">
+          <p class="legend-title">Compared with other places measuring this pollutant · Data: <a href="https://openaq.org">OpenAQ</a></p>
+          <ul class="legend-items">
+            <li><i style="--key:#367c59"></i>Lowest 25%</li>
+            <li><i style="--key:#8fab63"></i>25–50%</li>
+            <li><i style="--key:#d7a83e"></i>50–75%</li>
+            <li><i style="--key:#b9553f"></i>Highest 25%</li>
+            <li class="legend-empty"><i></i>No measurements</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section id="rankingView" class="insight-view" aria-live="polite">
+        <header class="insight-heading">
+          <h2 id="rankingTitle">Highest readings</h2>
+          <p id="rankingSubtitle">Loading readings…</p>
+        </header>
+        <ol id="ranking" class="ranking"></ol>
+        <p id="scaleNote" class="scale-note" hidden>Bars far above the rest are shortened and marked with a break.</p>
+      </section>
+      <section id="cityPanel" class="insight-view" aria-live="polite" hidden></section>
+    </aside>
+  </main>
+
+  <div id="errorBanner" class="error-banner" role="alert" hidden></div>
+  <script src="/vendor/maplibre-gl.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

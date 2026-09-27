@@ -1,0 +1,24 @@
+# Runs the end-to-end tests and fixture replay inside the transformation image, so they see the
+# same Linux environment as AWS Lambda. Tests, tools and the other
+# two services are mounted, not baked in: the deployed image contains only its own service.
+x-pipeline: &pipeline
+  build: services/transformation
+  working_dir: /var/task/repo
+  environment:
+    PYTHONPATH: /var/task:/var/task/repo/services/ingestion/src:/var/task/repo/services/website/src
+    AIRMAX_LOCAL_ROOT: /var/task/repo/.local
+  volumes:
+    - ./tests:/var/task/repo/tests
+    - ./tools:/var/task/repo/tools
+    - ./services/ingestion/src/airmax_ingestion:/var/task/repo/services/ingestion/src/airmax_ingestion
+    - ./services/website/src/airmax_website:/var/task/repo/services/website/src/airmax_website
+    - ./.local:/var/task/repo/.local
+
+services:
+  test:
+    <<: *pipeline
+    entrypoint: ["python", "-m", "unittest", "discover", "-s", "tests"]
+
+  replay:
+    <<: *pipeline
+    entrypoint: ["python", "tools/replay.py"]

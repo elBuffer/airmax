@@ -1,0 +1,10 @@
+{
+  "municipality": "Gent",
+  "nis": "44021",
+  "pollutant": "pm25",
+  "unit": "µg/m³",
+  "average": 13.6474010878,
+  "measurement_count": 6,
+  "location_count": 6,
+  "distinct_sites": 5
+}
