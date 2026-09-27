@@ -71,13 +71,13 @@ def calculate(store, context: CalculationContext, plan: CalculationPlan, workdir
     history_24h_complete = _retention_covers_period(
         context.previous_result,
         "who_24h",
-        plan.raw_objects,
+        context.raw_objects,
         prepared_24h.window["start"],
     )
     history_8h_complete = _retention_covers_period(
         context.previous_result,
         "who_8h",
-        ozone_objects,
+        context.raw_objects,
         prepared_8h.window["start"],
     )
     non_ozone_cities = [city for city in cities_24h if city["pollutant"] != "o3"]

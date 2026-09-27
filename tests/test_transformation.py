@@ -259,6 +259,7 @@ class CalculationTest(unittest.TestCase):
             self.assertEqual(first["who_24h"]["cities"][0]["observation_hour_count"], 2)
             self.assertEqual(first["who_24h"]["cities"][0]["required_hour_count"], 18)
             self.assertTrue(first["who_24h"]["window"]["history_complete"])
+            self.assertTrue(first["who_8h"]["window"]["history_complete"])
 
             added = json.loads(json.dumps(burst["Records"][0]))
             envelope = json.loads(added["body"])

@@ -653,7 +653,7 @@ function allPollutantsHtml(city) {
       meaning = `WHO ${guideline.period_hours}h: at or below guideline`;
       status = comparison.status;
     } else if (comparison) {
-      meaning = `WHO ${guideline.period_hours}h: not enough data (${comparison.observation_hour_count}/${comparison.required_hour_count} hours)`;
+      meaning = `WHO ${guideline.period_hours}h: not enough data (${comparison.observation_hour_count} of ${comparison.period_hours} hours; ${comparison.required_hour_count} required)`;
     }
     const evidence = current
       ? `${plural(current.measurement_count, 'measurement')} · ${plural(current.station_count, 'station')}`
