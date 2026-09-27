@@ -20,7 +20,7 @@ locals {
 
   # Production switches change only through a reviewed commit, never a command-line flag.
   ingestion_enabled = true
-  schedule_enabled  = false
+  schedule_enabled  = true
 }
 
 data "aws_iam_role" "lambda" {
