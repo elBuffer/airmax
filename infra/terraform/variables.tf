@@ -26,12 +26,20 @@ variable "expected_account_id" {
   }
 }
 
-variable "openaq_topic_arn" {
+variable "production_queue_name" {
   type        = string
-  description = "Public OpenAQ SNS topic ARN; required only for prd"
-  default     = ""
-  validation {
-    condition     = var.stage != "prd" || startswith(var.openaq_topic_arn, "arn:aws:sns:")
-    error_message = "openaq_topic_arn must be supplied for prd"
-  }
+  description = "Existing production source queue; Terraform reads but never owns it"
+  default     = "openaq-andre"
+}
+
+variable "enable_ingestion" {
+  type        = bool
+  description = "Enable the production queue consumer only after deployment smoke tests"
+  default     = false
+}
+
+variable "enable_schedule" {
+  type        = bool
+  description = "Enable scheduled production transformations only after ingestion is ready"
+  default     = false
 }

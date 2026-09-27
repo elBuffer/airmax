@@ -41,39 +41,19 @@ resource "aws_s3_bucket_public_access_block" "buckets" {
   restrict_public_buckets = true
 }
 
+data "aws_sqs_queue" "production_ingestion" {
+  count = var.stage == "prd" ? 1 : 0
+  name  = var.production_queue_name
+}
+
 resource "aws_sqs_queue" "ingestion" {
+  count                      = var.stage == "prd" ? 0 : 1
   name                       = "${local.prefix}-ingestion"
   visibility_timeout_seconds = 180
 }
 
-data "aws_iam_policy_document" "queue" {
-  count = var.stage == "prd" ? 1 : 0
-  statement {
-    actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.ingestion.arn]
-    principals {
-      type        = "Service"
-      identifiers = ["sns.amazonaws.com"]
-    }
-    condition {
-      test     = "ArnEquals"
-      variable = "aws:SourceArn"
-      values   = [var.openaq_topic_arn]
-    }
-  }
-}
-
-resource "aws_sqs_queue_policy" "ingestion" {
-  count     = var.stage == "prd" ? 1 : 0
-  queue_url = aws_sqs_queue.ingestion.id
-  policy    = data.aws_iam_policy_document.queue[0].json
-}
-
-resource "aws_sns_topic_subscription" "openaq" {
-  count     = var.stage == "prd" ? 1 : 0
-  topic_arn = var.openaq_topic_arn
-  protocol  = "sqs"
-  endpoint  = aws_sqs_queue.ingestion.arn
+locals {
+  ingestion_queue_arn = var.stage == "prd" ? data.aws_sqs_queue.production_ingestion[0].arn : aws_sqs_queue.ingestion[0].arn
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {
@@ -89,7 +69,7 @@ resource "aws_lambda_function" "ingestion" {
   handler          = "airmax_ingestion.handler.lambda_handler"
   filename         = "${path.module}/ingestion.zip"
   source_code_hash = filebase64sha256("${path.module}/ingestion.zip")
-  timeout          = 120
+  timeout          = var.stage == "prd" ? 5 : 120
   depends_on       = [aws_cloudwatch_log_group.lambda["ingestion"]]
 
   environment {
@@ -102,9 +82,10 @@ resource "aws_lambda_function" "ingestion" {
 
 resource "aws_lambda_event_source_mapping" "ingestion" {
   count            = var.stage == "prd" ? 1 : 0
-  event_source_arn = aws_sqs_queue.ingestion.arn
+  event_source_arn = local.ingestion_queue_arn
   function_name    = aws_lambda_function.ingestion.arn
   batch_size       = 10
+  enabled          = var.enable_ingestion
 }
 
 resource "aws_lambda_function" "transformation" {
@@ -132,6 +113,7 @@ resource "aws_cloudwatch_event_rule" "transformation" {
   count               = var.stage == "prd" ? 1 : 0
   name                = "${local.prefix}-transformation"
   schedule_expression = "rate(5 minutes)"
+  state               = var.enable_schedule ? "ENABLED" : "DISABLED"
 }
 
 resource "aws_cloudwatch_event_target" "transformation" {

@@ -1,9 +1,9 @@
 # Terraform deployment
 
-Terraform provisions two private S3 buckets, the SQS queue, three ZIP-based Python Lambdas, the
-production SNS subscription and five-minute EventBridge Rule, and the unauthenticated website
-Function URL. The subscription and schedule exist only in `prd`; `dev` is invoked manually. Every
-named resource starts with `andre-airmax-<stage>` by default.
+Terraform provisions two private S3 buckets, three ZIP-based Python Lambdas, the five-minute
+production EventBridge Rule, and the unauthenticated website Function URL. `dev` and `qa` receive
+a disposable queue. `prd` reads the existing `openaq-andre` queue without modifying or owning it.
+Every named resource starts with `andre-airmax-<stage>` by default.
 
 ## Prerequisites
 
@@ -28,9 +28,27 @@ The provider refuses to operate outside `AWS_ACCOUNT_ID`. Review the plan before
 .\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=dev"
 ```
 
-For `prd`, also pass `-var="openaq_topic_arn=..."`. Only `prd` subscribes to the real topic and
-activates the SQS event-source mapping; `dev` and `qa` use replay so they cannot steal production
-messages.
+For the first production deployment, leave ingestion and scheduling disabled:
+
+```powershell
+.\with-env.ps1 terraform -chdir=infra/terraform plan -var="stage=prd"
+```
+
+This creates a disabled event-source mapping to `openaq-andre`; it cannot consume the existing
+backlog. After Lambda smoke tests, enable ingestion explicitly:
+
+```powershell
+.\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=prd" -var="enable_ingestion=true"
+```
+
+Enable the five-minute transformation schedule only when ingestion is ready:
+
+```powershell
+.\with-env.ps1 terraform -chdir=infra/terraform apply -var="stage=prd" -var="enable_ingestion=true" -var="enable_schedule=true"
+```
+
+Always pass the same enabled values on later plans and applies. Terraform never deletes the provided
+production queue; `dev` and `qa` use replay so they cannot steal production messages.
 
 Delete the temporary environment with:
 
