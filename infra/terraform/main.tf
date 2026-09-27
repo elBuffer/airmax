@@ -119,11 +119,12 @@ resource "aws_lambda_function" "ingestion" {
 }
 
 resource "aws_lambda_event_source_mapping" "ingestion" {
-  count            = local.stage == "prd" ? 1 : 0
-  event_source_arn = local.ingestion_queue_arn
-  function_name    = aws_lambda_function.ingestion.arn
-  batch_size       = 10
-  enabled          = local.ingestion_enabled
+  count                              = local.stage == "prd" ? 1 : 0
+  event_source_arn                   = local.ingestion_queue_arn
+  function_name                      = aws_lambda_function.ingestion.arn
+  batch_size                         = 100
+  maximum_batching_window_in_seconds = 5
+  enabled                            = local.ingestion_enabled
 
   scaling_config {
     maximum_concurrency = 2
