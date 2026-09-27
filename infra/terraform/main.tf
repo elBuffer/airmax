@@ -19,7 +19,7 @@ locals {
   prefix = "${var.owner_name}-airmax-${local.stage}"
 
   # Production switches change only through a reviewed commit, never a command-line flag.
-  ingestion_enabled = false
+  ingestion_enabled = true
   schedule_enabled  = false
 }
 
