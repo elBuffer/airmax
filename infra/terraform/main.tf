@@ -82,7 +82,7 @@ resource "aws_lambda_function" "ingestion" {
   handler          = "airmax_ingestion.handler.lambda_handler"
   filename         = "${path.module}/ingestion.zip"
   source_code_hash = filebase64sha256("${path.module}/ingestion.zip")
-  timeout          = local.stage == "prd" ? 5 : 120
+  timeout          = local.stage == "prd" ? 25 : 120
   depends_on       = [aws_cloudwatch_log_group.lambda["ingestion"]]
 
   environment {

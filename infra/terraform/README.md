@@ -73,8 +73,9 @@ the AWS-managed ZIP runtime is not byte-for-byte identical; see
 [`docs/architecture.md`](../../docs/architecture.md#lambda-packaging-constraint). Smoke-test every
 deployment in AWS.
 
-The prd ingestion timeout is 5 seconds, a sixth of the queue's 30-second visibility timeout as AWS
-recommends. Check the measured duration in the prd smoke test.
+The production ingestion timeout is 25 seconds because a cold S3 write exceeded 5 seconds in the
+AWS smoke test. Before enabling ingestion, the externally owned queue's visibility timeout must be
+raised from 30 to at least 150 seconds to retain AWS's recommended six-times timeout margin.
 
 The configuration uses EventBridge Rules, not EventBridge Scheduler. It creates no IAM role, does
 not set reserved concurrency, and uses no Athena, Glue, Redshift, Aurora, or DynamoDB resources.
