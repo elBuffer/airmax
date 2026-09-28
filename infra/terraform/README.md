@@ -2,8 +2,8 @@
 
 Terraform provisions two private S3 buckets, three ZIP-based Python Lambdas, the five-minute
 production EventBridge Rule, and the unauthenticated website Function URL. `dev` and `qa` receive
-a disposable queue. `prd` reads the existing `openaq-andre` queue and adds a Terraform-owned DLQ
-without owning the source queue. Every named resource starts with `andre-airmax-<stage>` by default.
+a disposable queue; `prd` reads the existing `openaq-andre` queue without owning it. Every named
+resource starts with `andre-airmax-<stage>` by default.
 
 ## Prerequisites
 
@@ -56,8 +56,7 @@ buckets retain deletion protection and must be emptied deliberately; production 
 ## Production activation
 
 The first `prd` deployment creates the queue consumer and the five-minute schedule **disabled**, so it
-cannot consume the `openaq-andre` backlog. Terraform attaches a 14-day DLQ after five failed
-deliveries.
+cannot consume the `openaq-andre` backlog.
 
 Never invoke the `prd` ingestion Lambda with test fixtures: it writes them into the production raw
 bucket, where they become calculation input. Smoke-test ingestion end to end in `dev`. In `prd`,
