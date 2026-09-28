@@ -612,14 +612,16 @@ function readingHtml(city, value) {
   return `<div class="reading">
       <p class="reading-context">${escapeHtml(pollutant.name)}, latest ${windowHours()}-hour source window</p>
       <p class="reading-value"><strong>${formatValue(value.average)}</strong><span>${escapeHtml(value.unit)}</span></p>
-      <p class="reading-basis">Based on ${plural(value.measurement_count, 'reading')} from ${plural(value.station_count, 'physical site')}.</p>
-      <p class="detail-note">Window based on OpenAQ publication times because measurement times could not be verified.</p>
       <div class="band" aria-hidden="true">${BANDS.map((item, index) =>
         `<i style="--colour:${item.color}"${index === band ? ' class="is-active"' : ''}></i>`).join('')}</div>
       <div class="band-labels" aria-hidden="true"><span>Lowest 25%</span><span>Highest 25%</span></div>
       <p class="reading-standing">Rank ${escapeHtml(value.rank)} of ${rankedCities().length} places measuring ${escapeHtml(pollutant.text)}${band >= 0 ? `, in the ${BANDS[band].label} group` : ''}.</p>
       ${indicative}
-    </div>${whoComparisonHtml({ ...value, who_comparison: comparison })}`;
+    </div>
+    <dl class="evidence">
+      <div><dt>Readings</dt><dd>${countFormat.format(value.measurement_count)}</dd></div>
+      <div><dt>Physical sites</dt><dd>${countFormat.format(value.station_count)}</dd></div>
+    </dl>${whoComparisonHtml({ ...value, who_comparison: comparison })}`;
 }
 
 function otherPollutantsHtml(city) {

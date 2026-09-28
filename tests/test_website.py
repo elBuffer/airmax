@@ -61,7 +61,9 @@ class ServingTest(unittest.TestCase):
         self.assertIn('data-data-only="true"', page["body"])
         app = lambda_handler({"rawPath": "/app.js"}, reader=reader)["body"]
         self.assertIn("allPlaces.filter(hasData)", app)
-        self.assertIn("measurement times could not be verified", app)
+        self.assertIn("<dt>Readings</dt>", app)
+        self.assertIn("<dt>Physical sites</dt>", app)
+        self.assertNotIn("measurement times could not be verified", app)
         self.assertNotIn("First measurement", app)
         self.assertNotIn("Latest measurement", app)
 
