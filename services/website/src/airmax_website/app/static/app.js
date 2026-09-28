@@ -39,6 +39,7 @@ const state = {
   bounds: null,
   pollutant: null,
   view: 'map',
+  municipalityDataOnly: false,
   selected: null,
   hovered: null,
   map: null,
@@ -534,9 +535,16 @@ function renderRanking() {
 
 function renderMunicipalities() {
   const list = byId('ranking');
-  const places = searchIndex().filter((place) => !place.key.startsWith('source:'));
+  const allPlaces = searchIndex().filter((place) => !place.key.startsWith('source:'));
+  const hasData = (place) => {
+    const city = cityByKey(place.key);
+    return seriesList().some((series) => valueOf(city, series) || whoValueOf(city, series));
+  };
+  const places = state.municipalityDataOnly ? allPlaces.filter(hasData) : allPlaces;
   byId('rankingTitle').textContent = 'Municipalities';
-  byId('rankingSubtitle').textContent = `${countFormat.format(places.length)} Belgian municipalities. Grey means no measurements—not clean air.`;
+  byId('rankingSubtitle').textContent = state.municipalityDataOnly
+    ? `${countFormat.format(places.length)} of ${countFormat.format(allPlaces.length)} municipalities have data.`
+    : `${countFormat.format(places.length)} Belgian municipalities. Grey means no measurements—not clean air.`;
   list.className = 'municipality-list';
   list.innerHTML = places.map((place) => {
     const city = cityByKey(place.key);
@@ -846,6 +854,7 @@ function render() {
     button.setAttribute('aria-pressed', String(button.dataset.view === state.view));
   });
   byId('pollutantBar').hidden = state.view === 'municipalities';
+  byId('municipalityFilter').hidden = state.view !== 'municipalities';
   document.querySelector('.workspace').classList.toggle('is-municipalities', state.view === 'municipalities');
   renderPanel();
   renderCallout();
@@ -904,6 +913,10 @@ async function refresh() {
 
 function bindEvents() {
   byId('themeToggle').addEventListener('click', toggleTheme);
+  byId('municipalityDataOnly').addEventListener('change', (event) => {
+    state.municipalityDataOnly = event.target.checked;
+    render();
+  });
   document.querySelector('.view-switch').addEventListener('click', (event) => {
     const button = event.target.closest('[data-view]');
     if (button) setView(button.dataset.view);

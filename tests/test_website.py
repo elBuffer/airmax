@@ -57,6 +57,11 @@ class ServingTest(unittest.TestCase):
         page = lambda_handler({"rawPath": "/"}, reader=reader)
         self.assertEqual(page["statusCode"], 200)
         self.assertIn("Belgian air quality", page["body"])
+        self.assertIn('id="municipalityDataOnly"', page["body"])
+        self.assertIn(
+            "allPlaces.filter(hasData)",
+            lambda_handler({"rawPath": "/app.js"}, reader=reader)["body"],
+        )
 
         data = lambda_handler({"rawPath": "/data.json"}, reader=reader)
         self.assertEqual(json.loads(data["body"]), {"cities": []})
