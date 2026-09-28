@@ -60,6 +60,8 @@ WHO results average site-hours, then municipality-hours, then represented hours 
 
 Current and WHO sections have independent input digests and timestamps. WHO sections are reused between due hourly calculations.
 
+Each digest also covers a fingerprint of the transformation source code (`CODE_VERSION` in `calculations/input.py`). Deploying changed code therefore recomputes both sections on the next run, even when raw input is unchanged and the WHO hour is not yet due.
+
 Before publication, `calculations/result_validation.py` checks generated time, then the window, then each city row and row uniqueness. A validation error fails the transformation invocation before the S3 write, so `results/latest.json` remains the previous valid result and the website never receives the invalid candidate.
 
 Publication uses the current S3 ETag. After a conflict, the run compares `window.end_t` values:

@@ -1,6 +1,7 @@
 from ..pipeline import PreparedReadings, prepare_readings
 from ..transformations.validation import iso, parse_time
 from .input import (
+    CODE_VERSION,
     CalculationContext,
     CalculationPlan,
     input_digest,
@@ -31,6 +32,8 @@ def _is_due(previous_result, input_digest, generated_at):
     previous_who = (previous_result or {}).get("who_24h", {})
     if previous_who.get("input_digest") == input_digest:
         return False
+    if previous_who.get("code_version") != CODE_VERSION:
+        return True
 
     previous_generated_at = previous_who.get("generated_at")
     if previous_generated_at is None:
@@ -152,4 +155,5 @@ def _period_result(
     }
     if input_digest is not None:
         result["input_digest"] = input_digest
+        result["code_version"] = CODE_VERSION
     return result

@@ -2,6 +2,15 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+# Deploying new calculation code must recompute results even when the raw input is unchanged.
+CODE_VERSION = hashlib.sha256(
+    b"".join(
+        path.read_bytes().replace(b"\r\n", b"\n")
+        for path in sorted(Path(__file__).parents[1].rglob("*.py"))
+    )
+).hexdigest()[:16]
 
 
 @dataclass(frozen=True)
@@ -36,7 +45,7 @@ def select_objects(objects, window_hours):
 
 def input_digest(objects):
     return hashlib.sha256(
-        "\n".join(sorted(item.key for item in objects)).encode()
+        "\n".join([CODE_VERSION, *sorted(item.key for item in objects)]).encode()
     ).hexdigest()
 
 

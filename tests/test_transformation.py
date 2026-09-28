@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from airmax_ingestion.adapters.local_writer import LocalWriter
 from airmax_ingestion.handler import lambda_handler as ingest
@@ -283,6 +284,38 @@ class CalculationTest(unittest.TestCase):
             self.assertEqual(
                 next_hour["who_24h"]["generated_at"], "2026-09-18T11:00:00Z"
             )
+
+    def test_code_change_recalculates_unchanged_input_within_the_hour(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            burst = json.loads(
+                (FIXTURES / "burst-2026-09-17T04-13Z/sqs-event.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            ingest(burst, writer=LocalWriter(root))
+            store = LocalStore(root)
+            calculate(store=store, now=datetime(2026, 9, 18, 10, 15, tzinfo=UTC))
+            self.assertEqual(
+                calculate(store=store, now=datetime(2026, 9, 18, 10, 20, tzinfo=UTC))[
+                    "status"
+                ],
+                "unchanged",
+            )
+
+            with (
+                patch("airmax_transformation.calculations.input.CODE_VERSION", "new"),
+                patch("airmax_transformation.calculations.who.CODE_VERSION", "new"),
+            ):
+                redeployed = calculate(
+                    store=store, now=datetime(2026, 9, 18, 10, 25, tzinfo=UTC)
+                )
+
+            self.assertEqual(redeployed["status"], "written")
+            result = redeployed["result"]
+            self.assertEqual(result["generated_at"], "2026-09-18T10:25:00Z")
+            self.assertEqual(result["who_24h"]["generated_at"], "2026-09-18T10:25:00Z")
+            self.assertEqual(result["who_24h"]["code_version"], "new")
 
     def test_listing_starts_at_previous_window(self):
         with tempfile.TemporaryDirectory() as directory:
