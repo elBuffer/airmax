@@ -8,22 +8,31 @@ resource starts with `andre-airmax-<stage>` by default.
 ## Prerequisites
 
 - Python 3.11+ and `uv`;
-- Terraform 1.4+;
+- Terraform 1.10+;
 - `.env` copied from `.env.example` and filled with your AWS credentials and account ID;
 - the existing `lambda-execution-role` (Terraform reuses it and does not modify it).
 
 ## Stages are workspaces
 
-Each stage has its own Terraform workspace and therefore its own state file, so a `dev` command can
-never plan changes to `prd`. The workspace name is the stage; there is no `stage` variable. Terraform
-refuses to plan in the `default` workspace. Check where you are before every plan or destroy:
+Each stage has its own Terraform workspace in the versioned, private
+`andre-airmax-terraform-state` S3 backend. The workspace name is the stage; there is no `stage`
+variable. Terraform refuses to plan in the `default` workspace. Check where you are before every
+plan or destroy:
 
 ```powershell
 .\with-env.ps1 terraform '-chdir=infra/terraform' workspace show
 ```
 
-State is local and ignored by Git (`infra/terraform/terraform.tfstate.d/<stage>/`). Back up the
-`prd` state; losing it orphans the production resources.
+The backend bucket is bootstrapped outside this configuration so Terraform never owns the bucket
+containing its own state. Create it once if it does not exist:
+
+```powershell
+.\with-env.ps1 aws s3api create-bucket '--bucket=andre-airmax-terraform-state' '--region=eu-west-1' '--create-bucket-configuration=LocationConstraint=eu-west-1'
+.\with-env.ps1 aws s3api put-public-access-block '--bucket=andre-airmax-terraform-state' '--public-access-block-configuration=BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
+.\with-env.ps1 aws s3api put-bucket-versioning '--bucket=andre-airmax-terraform-state' '--versioning-configuration=Status=Enabled'
+```
+
+The backend uses S3 lock files to prevent concurrent state writes.
 
 ## Deploy
 
