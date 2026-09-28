@@ -74,9 +74,10 @@
         <header class="insight-heading">
           <h2 id="rankingTitle">Highest readings</h2>
           <p id="rankingSubtitle">Loading readings…</p>
-          <label id="municipalityFilter" class="municipality-filter" hidden>
-            <input id="municipalityDataOnly" type="checkbox"> Only municipalities with data
-          </label>
+          <div id="municipalityFilter" class="municipality-filter" role="group" aria-label="Filter municipalities" hidden>
+            <button type="button" data-data-only="false" aria-pressed="true">All</button>
+            <button type="button" data-data-only="true" aria-pressed="false">With data</button>
+          </div>
         </header>
         <ol id="ranking" class="ranking"></ol>
         <p id="scaleNote" class="scale-note" hidden>Bars far above the rest are shortened and marked with a break.</p>

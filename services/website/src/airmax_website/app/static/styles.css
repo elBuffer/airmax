@@ -159,8 +159,9 @@ h1, h2, h3, p { margin: 0; }
 .insight-heading { padding: 18px 20px 8px; }
 .insight-heading h2 { font-size: 19px; font-weight: 650; }
 .insight-heading p { margin-top: 2px; color: var(--muted); font-size: 13px; }
-.municipality-filter { width: fit-content; margin-top: 10px; display: flex; align-items: center; gap: 7px; font-size: 13.5px; cursor: pointer; }
-.municipality-filter input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.municipality-filter { width: fit-content; margin-top: 10px; padding: 3px; display: flex; background: var(--soft); border-radius: 8px; }
+.municipality-filter button { padding: 5px 11px; color: var(--muted); background: transparent; border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.municipality-filter button[aria-pressed="true"] { color: var(--ink); background: var(--white); box-shadow: 0 1px 3px rgba(22, 33, 43, .14); }
 
 .ranking { margin: 0; padding: 0 10px 14px; list-style: none; }
 .ranking button { width: 100%; padding: 8px 10px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 1px 8px; align-items: center; text-align: left; background: transparent; border: 0; border-radius: 8px; cursor: pointer; }

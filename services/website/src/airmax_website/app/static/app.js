@@ -855,6 +855,9 @@ function render() {
   });
   byId('pollutantBar').hidden = state.view === 'municipalities';
   byId('municipalityFilter').hidden = state.view !== 'municipalities';
+  document.querySelectorAll('[data-data-only]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(String(state.municipalityDataOnly) === button.dataset.dataOnly));
+  });
   document.querySelector('.workspace').classList.toggle('is-municipalities', state.view === 'municipalities');
   renderPanel();
   renderCallout();
@@ -913,8 +916,10 @@ async function refresh() {
 
 function bindEvents() {
   byId('themeToggle').addEventListener('click', toggleTheme);
-  byId('municipalityDataOnly').addEventListener('change', (event) => {
-    state.municipalityDataOnly = event.target.checked;
+  byId('municipalityFilter').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-data-only]');
+    if (!button) return;
+    state.municipalityDataOnly = button.dataset.dataOnly === 'true';
     render();
   });
   document.querySelector('.view-switch').addEventListener('click', (event) => {
