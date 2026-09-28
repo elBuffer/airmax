@@ -32,7 +32,9 @@ Raw records remain unchanged. Every result is recomputed; there are no running c
 
 Only dated `raw/` partitions are calculation input; `raw/invalid/` is preserved but excluded. Folder selection includes one boundary hour, then record timestamps apply the exact window.
 
-SNS publish time controls partitions, windows and freshness. `date.utc` is retained for traceability, deduplication and the five-minute late-data guard, but never anchors a window.
+The deployed contract remains OpenAQ's SQS/SNS envelope. The local source-comparison path also accepts canonical IRCEL-CELINE rows produced by `tools/capture_ircel.py`; their observation time controls partitioning, windows and freshness. A calculation rejects mixed accepted sources until a source conflict policy is selected.
+
+For OpenAQ, SNS publish time controls partitions, windows and freshness. `date.utc` is retained for traceability, deduplication and the five-minute late-data guard, but never anchors a window.
 
 | Calculation | Window | Cadence |
 |---|---:|---:|
@@ -46,7 +48,7 @@ SNS publish time controls partitions, windows and freshness. `date.utc` is retai
 
 Within the exact window:
 
-1. deduplicate by `locationId + pollutant + raw date.utc`;
+1. deduplicate by `source + locationId/timeseriesId + pollutant + source observation time`;
 2. map coordinates through the packaged municipality boundaries, excluding readings that do not
    map to a municipality.
 

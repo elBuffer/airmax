@@ -13,14 +13,15 @@ make install
 make install-hooks # activate the versioned pre-commit hook
 make replay
 make replay-data # replay data/openaq-andre-raw.jsonl
+make capture-ircel START=2026-09-17T00:00:00Z END=2026-09-18T00:00:00Z
+make replay-ircel # replay data/ircel.ndjson; then use make serve to view it
 make lint
 make typecheck
 make test
 make serve       # http://localhost:8000
 ```
 
-No AWS credentials are used by those commands. Generated files are under `.local/`. Repository
-rules for coding agents live in `AGENTS.md`; `make pre-commit` checks Ruff, mypy and regression behavior.
+No AWS credentials are used by those commands. Generated files are under `.local/`; the IRCEL-CELINE feasibility capture is written to ignored `data/ircel.ndjson`. IRCEL-CELINE support is a local source-comparison path, not a deployed second feed; mixed-source results are rejected until a conflict policy is selected. Repository rules for coding agents live in `AGENTS.md`; `make pre-commit` checks Ruff, mypy and regression behavior.
 
 For a Linux environment matching AWS Lambda, start Docker Desktop and run:
 

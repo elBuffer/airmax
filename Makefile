@@ -1,6 +1,6 @@
 PY := PYTHONWARNINGS=ignore::DeprecationWarning uv run python
 
-.PHONY: install install-hooks lint typecheck pre-commit replay replay-data serve test docker-test docker-replay package deploy
+.PHONY: install install-hooks lint typecheck pre-commit replay replay-data capture-ircel replay-ircel serve test docker-test docker-replay package deploy
 
 install:
 	uv sync
@@ -24,6 +24,12 @@ replay:
 
 replay-data:
 	AIRMAX_DATA=data/openaq-andre-raw.jsonl $(PY) tools/replay.py
+
+capture-ircel:
+	$(PY) tools/capture_ircel.py --start "$(START)" --end "$(END)"
+
+replay-ircel:
+	AIRMAX_DATA=$(or $(DATA),data/ircel.ndjson) $(PY) tools/replay_ircel.py
 
 serve:
 	AIRMAX_STORE=local $(PY) -m airmax_website.handler

@@ -837,6 +837,11 @@ function chooseInitialPollutant() {
 }
 
 function render() {
+  const source = state.data?.source;
+  if (source?.name && source?.url) {
+    byId('dataSource').textContent = source.name;
+    byId('dataSource').href = source.url;
+  }
   renderStatus();
   renderTabs();
   if (!state.pollutant) byId('pollutantTabs').innerHTML = `<p class="tabs-note">No pollutants measured in ${windowPhrase()}.</p>`;

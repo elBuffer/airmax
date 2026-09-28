@@ -14,6 +14,13 @@ from .result_validation import validate_result
 NAME = "current"
 LOOKBACK_HOURS = 3
 WINDOW_HOURS = LOOKBACK_HOURS
+SOURCE_METADATA = {
+    "OpenAQ": {"name": "OpenAQ", "url": "https://openaq.org"},
+    "IRCEL-CELINE": {
+        "name": "IRCEL-CELINE",
+        "url": "https://www.irceline.be/en/",
+    },
+}
 CURRENT_RESULT_FIELDS = (
     "generated_at",
     "window",
@@ -94,7 +101,7 @@ def empty_result(generated_at):
     return {
         "generated_at": iso(generated_at),
         "window": {"end_t": None, "start": None, "hours": WINDOW_HOURS},
-        "source": {"name": "OpenAQ", "url": "https://openaq.org"},
+        "source": SOURCE_METADATA["OpenAQ"],
         "input_digest": input_digest([]),
         "cities": [],
     }
@@ -121,7 +128,7 @@ def calculate(store, context: CalculationContext, plan: CalculationPlan, workdir
             "start": iso(prepared.window["start"]),
             "hours": WINDOW_HOURS,
         },
-        "source": {"name": "OpenAQ", "url": "https://openaq.org"},
+        "source": SOURCE_METADATA[prepared.source],
         "input_digest": plan.input_digest,
         "cities": cities,
     }

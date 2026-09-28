@@ -125,6 +125,7 @@ def dashboard_view(result: dict, stale_hours: int, now: datetime | None = None) 
         else "current"
     )
     return {
+        "source": result.get("source", {}),
         "window": {
             "start": result.get("window", {}).get("start"),
             "end": result.get("window", {}).get("end_t"),

@@ -50,6 +50,9 @@ class ServingTest(unittest.TestCase):
             self.assertEqual(pm25["average"], 13.6474010878)
             self.assertEqual(pm25["measurement_count"], 6)
             self.assertEqual(pm25["station_count"], 5)
+            self.assertEqual(
+                body["source"], {"name": "OpenAQ", "url": "https://openaq.org"}
+            )
             self.assertNotIn("quality", body)
 
     def test_routes(self):

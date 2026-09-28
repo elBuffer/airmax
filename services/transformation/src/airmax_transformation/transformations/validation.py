@@ -103,6 +103,7 @@ def valid_coordinates(latitude, longitude) -> bool:
 
 @dataclass
 class Reading:
+    source: str
     location_id: str
     pollutant: str
     unit: str
@@ -113,7 +114,9 @@ class Reading:
     longitude: float
 
 
-def reading_from(message: dict, sent_at: datetime) -> Reading | None:
+def reading_from(
+    message: dict, sent_at: datetime, source: str = "OpenAQ"
+) -> Reading | None:
     location_id = message["locationId"]
     pollutant = message["parameter"]
     unit = message["unit"]
@@ -139,6 +142,7 @@ def reading_from(message: dict, sent_at: datetime) -> Reading | None:
         return None
 
     return Reading(
+        source=source,
         location_id=str(location_id),
         pollutant=pollutant,
         unit=unit,
@@ -150,8 +154,25 @@ def reading_from(message: dict, sent_at: datetime) -> Reading | None:
     )
 
 
+def _ircel_reading(record: dict) -> tuple[Reading | None, datetime | None]:
+    observed_at = parse_time(record["observed_at"])
+    coordinates = record["coordinates"]
+    message = {
+        "locationId": record["timeseries_id"],
+        "parameter": record["pollutant"],
+        "unit": record["unit"],
+        "value": record["value"],
+        "country": "BE",
+        "date": {"utc": record["observed_at"]},
+        "coordinates": coordinates,
+    }
+    return reading_from(message, observed_at, "IRCEL-CELINE"), observed_at
+
+
 def validate(record: dict) -> tuple[Reading | None, datetime | None]:
     try:
+        if record.get("source") == "IRCEL-CELINE":
+            return _ircel_reading(record)
         envelope = json.loads(record["body"])
         sent_at = parse_time(envelope["Timestamp"])
         message = json.loads(envelope["Message"])
@@ -181,6 +202,7 @@ def load_readings(path: Path):
 def validate_and_spool(records, workdir: Path) -> dict:
     accepted_path = workdir / "accepted.ndjson"
     latest_received: datetime | None = None
+    sources = set()
 
     with accepted_path.open("w", encoding="utf-8") as accepted_file:
         for record in records:
@@ -189,6 +211,13 @@ def validate_and_spool(records, workdir: Path) -> dict:
                 if latest_received is None or sent_at > latest_received:
                     latest_received = sent_at
             if reading is not None:
+                sources.add(reading.source)
                 accepted_file.write(dump_reading(reading) + "\n")
 
-    return {"accepted_path": accepted_path, "latest_received": latest_received}
+    if len(sources) > 1:
+        raise ValueError("OpenAQ and IRCEL-CELINE require a source conflict policy")
+    return {
+        "accepted_path": accepted_path,
+        "latest_received": latest_received,
+        "source": next(iter(sources), "OpenAQ"),
+    }

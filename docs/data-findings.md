@@ -50,6 +50,20 @@ Those claims remain explicitly open rather than being fabricated.
    That is both the operational risk and the neutrality argument. Raw retention and visible
    staleness expose rather than conceal that dependence.
 
+## IRCEL-CELINE candidate source
+
+An API probe on 28 September 2026 confirmed that IRCEL-CELINE exposes public station timeseries at `https://geo.irceline.be/sos/api/v1` under CC BY 4.0. The six AirMax pollutants were available as 27 CO, 91 NO₂, 38 O₃, 94 PM10, 84 PM2.5 and 45 SO₂ timeseries. CO appears in both µg/m³ and mg/m³, so the feasibility adapter normalizes it to mg/m³.
+
+A replay of 17–18 September contained **7,558 non-null observations from 379 timeseries at 123 physical stations**. All stations mapped to official boundaries, covering **63 municipalities**, of which **12** had at least two stations. Pollutant coverage was 52 municipalities for NO₂, 48 each for PM10 and PM2.5, 34 for O₃, 9 for SO₂ and 7 for CO. Most active station/pollutant series supplied 24 or 25 hourly observations across the inclusive 24-hour capture, versus the six-hour delivery rhythm observed in OpenAQ.
+
+For the large-city examples, IRCEL-CELINE supplied 7 stations in the City of Brussels, 18 in Antwerpen, 6 each in Gent and Charleroi, and 4 in Liège. It added particulate measurements where the OpenAQ capture had none in Antwerpen and broadened Liège beyond CO; Leuven had no mapped IRCEL-CELINE station in this sample.
+
+**Preliminary comparison:** IRCEL-CELINE is better for freshness, timestamp clarity and several important cities, but much worse for nationwide breadth than the OpenAQ capture's 397 municipalities with data and 214 with multiple stations. The samples cover different durations, so this is enough to justify a combined evaluation—not a final source decision. Before combining them, measure publication delay, corrections, station overlap and source disagreement; do not average both feeds by default.
+
+Run `make capture-ircel START=<ISO-8601> END=<ISO-8601>` to capture up to 48 hours, then `make replay-ircel` to run it through the existing transformation and dashboard contract locally. The deployed feed remains OpenAQ.
+
+Sources: [IRCEL-CELINE open data](https://www.irceline.be/en/documentation/open-data), [API](https://geo.irceline.be/sos/api/v1/), and [dataset documentation](https://github.com/irceline/open_data).
+
 ## Verdict
 
 **Feasible with conditions.** The architecture and worked calculation are feasible. Commercial use

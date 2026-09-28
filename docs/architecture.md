@@ -67,6 +67,12 @@ Transformation uses no reserved concurrency. It publishes `results/latest.json` 
 
 For equal source time, the first write wins. A different immutable key set changes the input digest and is corrected on the next scheduled calculation. This accepts at most one refresh cycle of delay instead of adding a lock service.
 
+## Candidate IRCEL-CELINE source
+
+The local feasibility path captures IRCEL-CELINE hourly station timeseries and runs them through the existing windowing, municipality mapping, aggregation, validation and website contract. It is deliberately not deployed yet. If source evaluation selects it, add a separately scheduled ingestion Lambda because HTTP polling has a different trigger and failure mode from OpenAQ SQS; keep the transformation and serving deployables.
+
+Mixed OpenAQ and IRCEL-CELINE results are rejected until station overlap, source precedence and customer-facing provenance have a measured policy. The dashboard displays the source declared by the result rather than hard-coding OpenAQ.
+
 ## Serving
 
 The website reads one precomputed file and performs no analytics on the request path. It also serves bundled static assets and municipality boundaries, avoiding CORS and public S3 configuration. Function URL authentication is intentionally disabled for the proof of concept.

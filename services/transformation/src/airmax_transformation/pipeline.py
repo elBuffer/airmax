@@ -14,6 +14,7 @@ REFERENCE = Path(__file__).parent / "reference" / "municipalities.geojson"
 class PreparedReadings:
     readings: object
     window: dict
+    source: str
 
 
 def prepare_readings(records, workdir: Path, window_hours: int) -> PreparedReadings:
@@ -34,4 +35,5 @@ def prepare_readings(records, workdir: Path, window_hours: int) -> PreparedReadi
     return PreparedReadings(
         readings=readings,
         window={"start": window_start, "end": window_end, "hours": window_hours},
+        source=validated["source"],
     )
