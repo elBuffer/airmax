@@ -443,8 +443,8 @@ function renderStatus() {
   const badge = byId('freshnessBadge');
   badge.dataset.status = freshness.status || 'unavailable';
   badge.title = freshness.label || '';
-  if (freshness.status === 'current') badge.textContent = `Latest data received ${formatTime(freshness.latest_observation)}`;
-  else if (freshness.status === 'stale') badge.textContent = `Stale data, latest received ${formatDayTime(freshness.latest_observation)}`;
+  if (freshness.status === 'current') badge.textContent = `Latest OpenAQ update ${formatTime(freshness.latest_observation)}`;
+  else if (freshness.status === 'stale') badge.textContent = `Stale data, latest OpenAQ update ${formatDayTime(freshness.latest_observation)}`;
   else badge.textContent = `No measurements in ${windowPhrase()}`;
 }
 
@@ -470,8 +470,8 @@ function renderHeading() {
   if (!seriesList().length) {
     byId('mapTitle').textContent = `No measurements in ${windowPhrase()}`;
     byId('mapSubtitle').textContent = state.data.freshness?.latest_observation
-      ? `The latest measurement arrived for ${formatDayTime(state.data.freshness.latest_observation)}. The map fills in as soon as new measurements come in.`
-      : 'The map fills in as soon as new measurements come in.';
+      ? `The latest OpenAQ update was ${formatDayTime(state.data.freshness.latest_observation)}. The map fills in when OpenAQ publishes new data.`
+      : 'The map fills in when OpenAQ publishes new data.';
     return;
   }
   const top = rankedCities()[0];
@@ -483,8 +483,8 @@ function renderHeading() {
   }
   const value = valueOf(top);
   byId('mapTitle').textContent = `${pollutant.text} is highest in ${top.name}: ${formatValue(value.average)} ${value.unit}`;
-  byId('mapSubtitle').textContent = `Average of the ${value.measurement_count === 1 ? 'measurement' : `${countFormat.format(value.measurement_count)} measurements`} `
-    + `taken in ${top.name} between ${formatTime(value.earliest_observation)} and ${formatTime(value.latest_observation)}.`;
+  byId('mapSubtitle').textContent = `Average of ${plural(value.measurement_count, 'reading')} from `
+    + `${plural(value.station_count, 'physical site')} in ${top.name}'s latest ${windowHours()}-hour source window.`;
 }
 
 /* Ranking */
@@ -610,21 +610,16 @@ function readingHtml(city, value) {
   const indicative = value.status === 'available' ? ''
     : '<p class="detail-note">Indicative: based on too few stations or measurements for a firm value.</p>';
   return `<div class="reading">
-      <p class="reading-context">${escapeHtml(pollutant.name)}, average of ${windowPhrase()}</p>
+      <p class="reading-context">${escapeHtml(pollutant.name)}, latest ${windowHours()}-hour source window</p>
       <p class="reading-value"><strong>${formatValue(value.average)}</strong><span>${escapeHtml(value.unit)}</span></p>
-      <p class="reading-basis">Based on ${plural(value.measurement_count, 'measurement')} from ${plural(value.station_count, 'station')}, ${formatTime(value.earliest_observation)}–${formatTime(value.latest_observation)}.</p>
+      <p class="reading-basis">Based on ${plural(value.measurement_count, 'reading')} from ${plural(value.station_count, 'physical site')}.</p>
+      <p class="detail-note">Window based on OpenAQ publication times because measurement times could not be verified.</p>
       <div class="band" aria-hidden="true">${BANDS.map((item, index) =>
         `<i style="--colour:${item.color}"${index === band ? ' class="is-active"' : ''}></i>`).join('')}</div>
       <div class="band-labels" aria-hidden="true"><span>Lowest 25%</span><span>Highest 25%</span></div>
       <p class="reading-standing">Rank ${escapeHtml(value.rank)} of ${rankedCities().length} places measuring ${escapeHtml(pollutant.text)}${band >= 0 ? `, in the ${BANDS[band].label} group` : ''}.</p>
       ${indicative}
-    </div>
-    <dl class="evidence">
-      <div><dt>Measurements</dt><dd>${countFormat.format(value.measurement_count)}</dd></div>
-      <div><dt>Stations</dt><dd>${countFormat.format(value.station_count)}</dd></div>
-      <div><dt>First measurement</dt><dd>${escapeHtml(formatTime(value.earliest_observation))}</dd></div>
-      <div><dt>Latest measurement</dt><dd>${escapeHtml(formatTime(value.latest_observation))}</dd></div>
-    </dl>${whoComparisonHtml({ ...value, who_comparison: comparison })}`;
+    </div>${whoComparisonHtml({ ...value, who_comparison: comparison })}`;
 }
 
 function otherPollutantsHtml(city) {

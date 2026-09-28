@@ -59,10 +59,11 @@ class ServingTest(unittest.TestCase):
         self.assertIn("Belgian air quality", page["body"])
         self.assertIn('id="municipalityFilter"', page["body"])
         self.assertIn('data-data-only="true"', page["body"])
-        self.assertIn(
-            "allPlaces.filter(hasData)",
-            lambda_handler({"rawPath": "/app.js"}, reader=reader)["body"],
-        )
+        app = lambda_handler({"rawPath": "/app.js"}, reader=reader)["body"]
+        self.assertIn("allPlaces.filter(hasData)", app)
+        self.assertIn("measurement times could not be verified", app)
+        self.assertNotIn("First measurement", app)
+        self.assertNotIn("Latest measurement", app)
 
         data = lambda_handler({"rawPath": "/data.json"}, reader=reader)
         self.assertEqual(json.loads(data["body"]), {"cities": []})
@@ -83,9 +84,7 @@ class ServingTest(unittest.TestCase):
                 "source": "https://www.who.int/publications/i/item/9789240034228",
             },
         )
-        self.assertIn(
-            "maplibre", lambda_handler({"rawPath": "/app.js"}, reader=reader)["body"]
-        )
+        self.assertIn("maplibre", app)
         self.assertEqual(
             lambda_handler({"rawPath": "/vendor/maplibre-gl.js"}, reader=reader)[
                 "statusCode"
