@@ -56,8 +56,12 @@ buckets retain deletion protection and must be emptied deliberately; production 
 ## Production activation
 
 The first `prd` deployment creates the queue consumer and the five-minute schedule **disabled**, so it
-cannot consume the `openaq-andre` backlog. Smoke-test by invoking the Lambdas directly. Terraform
-attaches a 14-day DLQ after five failed deliveries.
+cannot consume the `openaq-andre` backlog. Terraform attaches a 14-day DLQ after five failed
+deliveries.
+
+Never invoke the `prd` ingestion Lambda with test fixtures: it writes them into the production raw
+bucket, where they become calculation input. Smoke-test ingestion end to end in `dev`. In `prd`,
+invoke only transformation and the website, and verify ingestion with the first real queue batch.
 
 Before activation, raise the externally owned source queue's visibility timeout to 150 seconds:
 
