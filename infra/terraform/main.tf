@@ -82,8 +82,10 @@ resource "aws_lambda_function" "ingestion" {
   handler          = "airmax_ingestion.handler.lambda_handler"
   filename         = "${path.module}/ingestion.zip"
   source_code_hash = filebase64sha256("${path.module}/ingestion.zip")
-  timeout          = local.stage == "prd" ? 25 : 120
-  depends_on       = [aws_cloudwatch_log_group.lambda["ingestion"]]
+  # Lambda allocates CPU in proportion to memory; 128 MB left ~7% of a vCPU for JSON handling.
+  memory_size = 512
+  timeout     = local.stage == "prd" ? 25 : 120
+  depends_on  = [aws_cloudwatch_log_group.lambda["ingestion"]]
 
   environment {
     variables = {
@@ -156,8 +158,10 @@ resource "aws_lambda_function" "website" {
   handler          = "airmax_website.handler.lambda_handler"
   filename         = "${path.module}/website.zip"
   source_code_hash = filebase64sha256("${path.module}/website.zip")
-  timeout          = 10
-  depends_on       = [aws_cloudwatch_log_group.lambda["website"]]
+  # Lambda allocates CPU in proportion to memory; 128 MB left ~7% of a vCPU for JSON handling.
+  memory_size = 512
+  timeout     = 10
+  depends_on  = [aws_cloudwatch_log_group.lambda["website"]]
 
   environment {
     variables = {
